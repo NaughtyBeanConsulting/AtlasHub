@@ -216,3 +216,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# AtlasHub additions
+node_modules/
+whatsapp_session/
+.tailwind/
+media/
+staticfiles/
+.DS_Store
