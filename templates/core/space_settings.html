@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ space.name }} settings — AtlasHub{% endblock %}
+
+{% block body %}
+<main class="mx-auto w-full max-w-2xl px-4 py-10">
+  <nav class="mb-1 text-xs text-n200">
+    {% if space.space_type == 'software' %}<a href="{% url 'projects:project_home' space.key %}" class="hover:underline">{{ space.name }}</a>
+    {% else %}{% url 'wiki:space_home' space.key as wiki_home %}{% if wiki_home %}<a href="{{ wiki_home }}" class="hover:underline">{{ space.name }}</a>{% else %}{{ space.name }}{% endif %}{% endif %}
+    <span class="mx-1">/</span> Settings
+  </nav>
+  <h1 class="mb-8 flex items-center gap-3 text-xl font-medium text-n800">
+    <span class="flex h-8 w-8 items-center justify-center rounded-[3px] text-sm font-bold text-white"
+          style="background-color: {{ space.color }}">{{ space.key|slice:':1' }}</span>
+    {{ space.name }} <span class="badge">{{ space.key }}</span>
+  </h1>
+
+  <div class="card mb-6 p-6">
+    <h2 class="mb-4 text-sm font-semibold uppercase tracking-wide text-n300">Members</h2>
+    <ul class="mb-6 divide-y divide-n30">
+      {% for m in memberships %}
+        <li class="flex items-center gap-3 py-2.5">
+          {% include 'components/avatar.html' with u=m.user size='h-8 w-8 text-xs' %}
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-medium text-n800">{{ m.user.display_name }}</p>
+            <p class="truncate text-xs text-n200">{{ m.user.email }}</p>
+          </div>
+          <form method="post" class="flex items-center gap-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="change_role">
+            <input type="hidden" name="membership" value="{{ m.pk }}">
+            <select name="role" onchange="this.form.submit()"
+                    class="rounded-[3px] border-2 border-n40 bg-white px-2 py-1 text-xs font-medium text-n500 focus:border-blue-500 focus:outline-none">
+              {% for value, label in roles %}
+                <option value="{{ value }}" {% if m.role == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </form>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="remove_member">
+            <input type="hidden" name="membership" value="{{ m.pk }}">
+            <button type="submit" class="btn-icon !h-7 !w-7 text-n100 hover:text-red-500" title="Remove from space">
+              {% include 'components/icons.html' with name='trash' class='h-3.5 w-3.5' %}
+            </button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+
+    <form method="post" class="flex items-end gap-2">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add_member">
+      <div class="flex-1">
+        <label class="label" for="{{ add_form.email.id_for_label }}">Add a member</label>
+        {{ add_form.email }}
+        {{ add_form.email.errors }}
+      </div>
+      <div>
+        <label class="label" for="{{ add_form.role.id_for_label }}">Role</label>
+        {{ add_form.role }}
+      </div>
+      <button type="submit" class="btn-primary">Add</button>
+    </form>
+  </div>
+
+  <div class="card border-l-4 border-red-500 p-6">
+    <h2 class="mb-1 text-sm font-semibold uppercase tracking-wide text-red-500">Danger zone</h2>
+    <p class="mb-4 text-xs text-n200">
+      Deleting a space permanently removes
+      {% if space.space_type == 'software' %}all of its issues and sprints{% else %}all of its pages and diagrams{% endif %}.
+    </p>
+    <form method="post" class="flex items-center gap-2"
+          onsubmit="return confirm('Really delete {{ space.key }}? This cannot be undone.')">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="delete_space">
+      <input name="confirm_key" class="input max-w-[12rem]" placeholder="Type {{ space.key }} to confirm">
+      <button type="submit" class="btn-danger">Delete space</button>
+    </form>
+  </div>
+</main>
+{% endblock %}

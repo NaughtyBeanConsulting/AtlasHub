@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<div class="flex min-h-[calc(100vh-3.5rem)]">
+  <aside class="hidden w-60 shrink-0 flex-col border-r border-n30 bg-n10 px-3 pb-6 pt-5 md:flex">
+    <div class="mb-6 flex items-center gap-2.5 px-2">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[3px] text-sm font-bold text-white"
+            style="background-color: {{ space.color }}">{{ space.key|slice:':1' }}</span>
+      <div class="min-w-0">
+        <p class="truncate text-sm font-semibold text-n800">{{ space.name }}</p>
+        <p class="text-xs text-n200">Software project</p>
+      </div>
+    </div>
+
+    <p class="menu-heading !px-2">Planning</p>
+    {% url 'projects:board' space.key as board_url %}
+    {% if board_url %}
+      <a href="{{ board_url }}" class="side-item {% if request.resolver_match.url_name == 'board' %}side-item-active{% endif %}">
+        {% include 'components/icons.html' with name='board' class='h-4 w-4' %} Board
+      </a>
+    {% endif %}
+    <a href="{% url 'projects:backlog' space.key %}" class="side-item {% if request.resolver_match.url_name == 'backlog' %}side-item-active{% endif %}">
+      {% include 'components/icons.html' with name='backlog' class='h-4 w-4' %} Backlog
+    </a>
+    {% url 'projects:timeline' space.key as timeline_url %}
+    {% if timeline_url %}
+      <a href="{{ timeline_url }}" class="side-item {% if request.resolver_match.url_name == 'timeline' %}side-item-active{% endif %}">
+        {% include 'components/icons.html' with name='timeline' class='h-4 w-4' %} Timeline
+      </a>
+    {% endif %}
+
+    <div class="mt-auto border-t border-n30 pt-3">
+      {% if request.space_role == 'admin' %}
+        <a href="{% url 'core:space_settings' space.key %}" class="side-item">
+          {% include 'components/icons.html' with name='move' class='h-4 w-4' %} Project settings
+        </a>
+      {% endif %}
+    </div>
+  </aside>
+  <div class="min-w-0 flex-1">{% block space_content %}{% endblock %}</div>
+</div>
+{% endblock %}

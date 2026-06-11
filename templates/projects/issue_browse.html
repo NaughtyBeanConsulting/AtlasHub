@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ issue.key }}: {{ issue.summary }} — AtlasHub{% endblock %}
+
+{% block body %}
+<main class="mx-auto w-full max-w-5xl px-6 py-8">
+  <nav class="mb-2 flex items-center gap-1 text-xs text-n200">
+    <a href="{% url 'projects:home' %}" class="hover:underline">Projects</a>
+    <span>/</span>
+    <a href="{% url 'projects:project_home' space.key %}" class="hover:underline">{{ space.name }}</a>
+    <span>/</span>
+    {% include 'components/icons.html' with name=issue.issue_type class='h-3.5 w-3.5' %}
+    <span class="font-medium">{{ issue.key }}</span>
+  </nav>
+
+  <div class="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_320px]">
+    <div>
+      <h1 class="mb-4 text-2xl font-medium text-n800">{{ issue.summary }}</h1>
+      <h2 class="mb-2 text-sm font-semibold text-n300">Description</h2>
+      {% if issue.description_md %}
+        <p class="whitespace-pre-wrap text-sm text-n800">{{ issue.description_md }}</p>
+      {% else %}
+        <p class="text-sm italic text-n100">No description yet.</p>
+      {% endif %}
+    </div>
+
+    <aside>
+      <div class="card divide-y divide-n30">
+        <div class="flex items-center justify-between px-4 py-2.5">
+          <span class="text-xs font-semibold text-n300">Status</span>
+          <span class="lozenge {{ issue.status.lozenge_class }}">{{ issue.status.name }}</span>
+        </div>
+        <div class="flex items-center justify-between px-4 py-2.5">
+          <span class="text-xs font-semibold text-n300">Assignee</span>
+          <span class="flex items-center gap-2 text-sm">
+            {% include 'components/avatar.html' with u=issue.assignee %}
+            {{ issue.assignee.display_name|default:'Unassigned' }}
+          </span>
+        </div>
+        <div class="flex items-center justify-between px-4 py-2.5">
+          <span class="text-xs font-semibold text-n300">Reporter</span>
+          <span class="flex items-center gap-2 text-sm">
+            {% include 'components/avatar.html' with u=issue.reporter %}
+            {{ issue.reporter.display_name|default:'—' }}
+          </span>
+        </div>
+        <div class="flex items-center justify-between px-4 py-2.5">
+          <span class="text-xs font-semibold text-n300">Priority</span>
+          <span class="flex items-center gap-1.5 text-sm">
+            {% with pname='p-'|add:issue.priority %}{% include 'components/icons.html' with name=pname class='h-3.5 w-3.5' %}{% endwith %}
+            {{ issue.get_priority_display }}
+          </span>
+        </div>
+        <div class="flex items-center justify-between px-4 py-2.5">
+          <span class="text-xs font-semibold text-n300">Story points</span>
+          <span class="badge">{{ issue.story_points|default:'—' }}</span>
+        </div>
+        {% if issue.epic %}
+        <div class="flex items-center justify-between px-4 py-2.5">
+          <span class="text-xs font-semibold text-n300">Epic</span>
+          <a href="{% url 'projects:browse' issue.epic.key %}" class="lozenge"
+             style="background-color: {{ issue.epic.epic_color }}22; color: {{ issue.epic.epic_color }}">
+            {{ issue.epic.summary|truncatechars:28 }}
+          </a>
+        </div>
+        {% endif %}
+        <div class="flex items-center justify-between px-4 py-2.5">
+          <span class="text-xs font-semibold text-n300">Sprint</span>
+          <span class="text-sm">{{ issue.sprint.name|default:'Backlog' }}</span>
+        </div>
+        <div class="px-4 py-2.5 text-xs text-n100">
+          Created {{ issue.created_at|date:'j M Y' }} · Updated {{ issue.updated_at|timesince }} ago
+        </div>
+      </div>
+    </aside>
+  </div>
+</main>
+{% endblock %}

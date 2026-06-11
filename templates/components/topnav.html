@@ -26,7 +26,7 @@
         {% if nav_software_spaces %}
           <p class="menu-heading">Projects</p>
           {% for s in nav_software_spaces %}
-            <a class="menu-item" href="{% url 'projects:board' s.key %}">
+            <a class="menu-item" href="{% url 'projects:project_home' s.key %}">
               <span class="flex h-5 w-5 items-center justify-center rounded-[3px] text-[10px] font-bold text-white" style="background-color: {{ s.color }}">{{ s.key|slice:":1" }}</span>
               <span class="flex-1 truncate">{{ s.name }}</span>
               <span class="text-[11px] text-n100">{{ s.key }}</span>

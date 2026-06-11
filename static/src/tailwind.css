@@ -6,6 +6,19 @@
   display: none !important;
 }
 
+/* Empty drag targets keep a visible drop zone with a hint. */
+.js-backlog-list:empty {
+  border: 1px dashed #dfe1e6;
+  min-height: 2.25rem;
+}
+.js-backlog-list:empty::after {
+  content: 'No issues — drag one here or create below';
+  display: block;
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  color: #7a869a;
+}
+
 @layer components {
   /* Buttons */
   .btn-primary {
@@ -58,6 +71,14 @@
   }
   .nav-tab-active {
     @apply border-blue-500 text-blue-500;
+  }
+
+  /* Space sidebar */
+  .side-item {
+    @apply mb-0.5 flex items-center gap-2.5 rounded-[3px] px-2 py-1.5 text-sm text-n500 transition-colors hover:bg-n30;
+  }
+  .side-item-active {
+    @apply bg-blue-50 font-medium text-blue-600 hover:bg-blue-50;
   }
 
   /* Badges & pills */

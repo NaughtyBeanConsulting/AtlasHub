@@ -1,0 +1,56 @@
+{% extends 'projects/space_base.html' %}
+
+{% block title %}Backlog — {{ space.name }}{% endblock %}
+
+{% block space_content %}
+<main class="px-6 py-5">
+  <nav class="mb-1 text-xs text-n200">
+    <a href="{% url 'projects:home' %}" class="hover:underline">Projects</a>
+    <span class="mx-1">/</span>
+    <span>{{ space.name }}</span>
+  </nav>
+
+  <div class="mb-6 flex items-center justify-between" x-data="dropdown">
+    <h1 class="text-xl font-medium text-n800">Backlog</h1>
+    {% if request.space_role != 'viewer' %}
+      <button @click="toggle" class="btn-subtle">
+        {% include 'components/icons.html' with name='plus' class='h-3.5 w-3.5' %} Create epic
+      </button>
+      <div x-cloak x-show="open" @click.self="close"
+           class="fixed inset-0 z-50 flex items-center justify-center bg-n900/50 p-4">
+        <div class="card w-full max-w-md p-6 !shadow-overlay" @click.stop>
+          <h2 class="mb-4 text-lg font-medium text-n800">Create epic</h2>
+          <form method="post" action="{% url 'projects:epic_create' space.key %}">
+            {% csrf_token %}
+            <label class="label" for="epic-summary">Epic name <span class="text-red-500">*</span></label>
+            <input id="epic-summary" name="summary" class="input mb-4" required maxlength="255"
+                   placeholder="e.g. Payments and billing">
+            <p class="label">Colour</p>
+            <div class="mb-6 flex gap-2">
+              {% for c in epic_colors %}
+                <label>
+                  <input type="radio" name="color" value="{{ c }}" class="peer sr-only" {% if forloop.first %}checked{% endif %}>
+                  <span class="block h-7 w-7 cursor-pointer rounded-[3px] ring-blue-500 ring-offset-2 peer-checked:ring-2"
+                        style="background-color: {{ c }}"></span>
+                </label>
+              {% endfor %}
+            </div>
+            <div class="flex justify-end gap-2">
+              <button type="button" @click="close" class="btn-subtle">Cancel</button>
+              <button type="submit" class="btn-primary">Create</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  {% block sprint_panel %}{% endblock %}
+
+  <div id="backlog-groups">
+    {% for group in groups %}
+      {% include 'projects/partials/backlog_group.html' %}
+    {% endfor %}
+  </div>
+</main>
+{% endblock %}

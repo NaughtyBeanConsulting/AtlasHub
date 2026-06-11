@@ -1,0 +1,22 @@
+<div class="js-backlog-row group flex items-center gap-2 border-b border-n30 bg-white px-2 py-1.5 hover:bg-n10"
+     data-id="{{ issue.id }}">
+  <span class="js-grip cursor-grab text-n50 opacity-0 transition-opacity group-hover:opacity-100">
+    {% include 'components/icons.html' with name='grip' class='h-4 w-4' %}
+  </span>
+  {% include 'components/icons.html' with name=issue.issue_type class='h-4 w-4 shrink-0' %}
+  <a href="{% url 'projects:browse' issue.key %}"
+     class="w-[4.5rem] shrink-0 text-xs font-medium text-n200 hover:text-blue-500 hover:underline">{{ issue.key }}</a>
+  <span class="min-w-0 flex-1 truncate text-sm text-n800">{{ issue.summary }}</span>
+  {% if issue.epic %}
+    <span class="lozenge hidden lg:inline-flex"
+          style="background-color: {{ issue.epic.epic_color }}22; color: {{ issue.epic.epic_color }}">
+      {{ issue.epic.summary|truncatechars:24 }}
+    </span>
+  {% endif %}
+  <span class="lozenge {{ issue.status.lozenge_class }}">{{ issue.status.name }}</span>
+  {% with pname='p-'|add:issue.priority %}
+    <span title="{{ issue.get_priority_display }} priority">{% include 'components/icons.html' with name=pname class='h-3.5 w-3.5' %}</span>
+  {% endwith %}
+  <span class="badge w-7 justify-center {% if issue.story_points is None %}invisible{% endif %}">{{ issue.story_points|default:'–' }}</span>
+  {% include 'components/avatar.html' with u=issue.assignee %}
+</div>

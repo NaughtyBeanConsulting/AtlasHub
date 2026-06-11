@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}Projects — AtlasHub{% endblock %}
+
+{% block body %}
+<main class="mx-auto w-full max-w-5xl px-6 py-10">
+  <div class="mb-8 flex items-center justify-between">
+    <h1 class="text-2xl font-medium text-n800">Projects</h1>
+    <a href="{% url 'core:space_create' %}?type=software" class="btn-primary">Create project</a>
+  </div>
+
+  {% if spaces %}
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {% for s in spaces %}
+        <a href="{% url 'projects:project_home' s.key %}" class="card flex items-center gap-3 p-4 transition-shadow hover:shadow-overlay">
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-[3px] text-base font-bold text-white"
+                style="background-color: {{ s.color }}">{{ s.key|slice:':1' }}</span>
+          <span class="min-w-0">
+            <span class="block truncate text-sm font-semibold text-n800">{{ s.name }}</span>
+            <span class="block text-xs text-n200">{{ s.key }} · {{ s.issue_count }} issue{{ s.issue_count|pluralize }}</span>
+          </span>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card flex flex-col items-center gap-3 p-12 text-center">
+      <span class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-500">
+        {% include 'components/icons.html' with name='board' class='h-6 w-6' %}
+      </span>
+      <h2 class="text-lg font-medium text-n800">No projects yet</h2>
+      <p class="max-w-md text-sm text-n200">Create a project space to plan work on a backlog and sprint board.</p>
+      <a href="{% url 'core:space_create' %}?type=software" class="btn-primary mt-2">Create project</a>
+    </div>
+  {% endif %}
+</main>
+{% endblock %}

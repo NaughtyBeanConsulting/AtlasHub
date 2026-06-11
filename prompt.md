@@ -12,7 +12,7 @@ custom WhatsApp Web integration for notifications and password resets.
 
 ## Tech stack (fixed — do not substitute)
 - **Backend:** Django (latest stable), one project, cleanly separated apps
-  (suggested: `accounts`, `projects` (jira), `wiki` (confluence), `whatsapp`, `core`).
+  (suggested: `accounts`, `projects` (jira), `wiki` (confluence), `whatsapp`, `app`(for the settings, wsgi i.e. main django project)).
 - **Database:** PostgreSQL. Credentials are already in `.env` (`SECRET_KEY`, `DEBUG`,
   `ALLOWED_HOSTS`, `SITE_URL`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`).
   Load them with **python-dotenv**. Never hardcode or commit secret values.

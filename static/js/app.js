@@ -18,6 +18,53 @@ document.addEventListener('alpine:init', () => {
   }));
 });
 
+function csrfToken() {
+  try {
+    return JSON.parse(document.body.getAttribute('hx-headers'))['X-CSRFToken'] || '';
+  } catch (e) {
+    return '';
+  }
+}
+
+function postForm(url, params) {
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': csrfToken() },
+    body: params,
+  }).then((r) => {
+    if (!r.ok) window.location.reload();
+  });
+}
+
+// Backlog: drag to reorder within an epic group, or across groups to change epic.
+function initBacklogLists(root) {
+  if (!window.Sortable) return;
+  root.querySelectorAll('.js-backlog-list').forEach((el) => {
+    if (el._sortable) return;
+    el._sortable = new Sortable(el, {
+      group: 'backlog',
+      handle: '.js-grip',
+      animation: 150,
+      ghostClass: 'opacity-40',
+      onEnd(evt) {
+        const list = evt.to;
+        const params = new URLSearchParams();
+        params.append('moved', evt.item.dataset.id);
+        params.append('epic', list.dataset.epic || '');
+        list.querySelectorAll('.js-backlog-row').forEach((row) => params.append('ids', row.dataset.id));
+        postForm(list.dataset.url, params);
+      },
+    });
+  });
+}
+
+// htmx.onLoad fires on initial load and after every swap.
+if (window.htmx) {
+  htmx.onLoad((root) => {
+    initBacklogLists(root);
+  });
+}
+
 // Re-render mermaid diagrams inside content swapped in by htmx (wiki pages).
 document.addEventListener('htmx:afterSwap', (evt) => {
   if (window.mermaid) {
