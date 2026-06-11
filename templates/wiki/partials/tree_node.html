@@ -10,6 +10,12 @@
        class="min-w-0 flex-1 truncate text-sm {% if node.id == current_page_id %}font-medium text-blue-600{% else %}text-n500 hover:text-blue-500{% endif %}">
       {{ node.title }}
     </a>
+    {% if not node.is_published %}<span class="lozenge lozenge-todo shrink-0">Draft</span>{% endif %}
+    {% if node.view_role != 'viewer' %}
+      <span class="shrink-0 text-n100" title="Restricted: {{ node.get_view_role_display|lower }}">
+        {% include 'components/icons.html' with name='lock' class='h-3 w-3' %}
+      </span>
+    {% endif %}
     {% if can_edit %}
       <a href="{% url 'wiki:page_create' space.key %}?parent={{ node.id }}"
          class="text-n100 opacity-0 transition-opacity hover:text-blue-500 group-hover:opacity-100" title="Add a page inside">

@@ -6,6 +6,44 @@ from django.urls import reverse
 from django.utils.html import escape
 
 from core.markdown import render_markdown
+from core.models import SpaceMembership
+
+
+def required_view_ranks(space):
+    """Map of page id → minimum role rank needed to view it, taking inherited
+    restrictions (max along the ancestor chain) and draft status (member+)
+    into account. One query per space — used by trees, search, dashboards."""
+    rank = SpaceMembership.ROLE_RANK
+    member_rank = rank[SpaceMembership.ROLE_MEMBER]
+    pages = {
+        p['id']: p for p in
+        space.pages.values('id', 'parent_id', 'view_role', 'is_published')
+    }
+    needed = {}
+
+    def resolve(pid, seen):
+        if pid in needed:
+            return needed[pid]
+        page = pages[pid]
+        need = rank[page['view_role']]
+        parent_id = page['parent_id']
+        if parent_id in pages and parent_id not in seen:
+            seen.add(pid)
+            need = max(need, resolve(parent_id, seen))
+        if not page['is_published']:
+            need = max(need, member_rank)
+        needed[pid] = need
+        return need
+
+    for pid in pages:
+        resolve(pid, {pid})
+    return needed
+
+
+def visible_page_ids(space, role):
+    """Ids of the pages a member with `role` may see in this space."""
+    user_rank = SpaceMembership.ROLE_RANK[role]
+    return {pid for pid, need in required_view_ranks(space).items() if user_rank >= need}
 
 # ```drawio:<id>``` fences are swapped for a token BEFORE markdown runs
 # (python-markdown won't treat "drawio:<id>" as a fence language), and the

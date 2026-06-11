@@ -26,6 +26,25 @@ def mentions(request, space):
     ]})
 
 
+def _filter_visible_pages(user, pages, limit):
+    """Apply wiki page-level security (restrictions + drafts) to a page list
+    that may span several spaces."""
+    from wiki.services import required_view_ranks
+    ranks, needs = {}, {}
+    out = []
+    for page in pages:
+        space = page.space
+        if space.pk not in ranks:
+            role = space.role_for(user)
+            ranks[space.pk] = SpaceMembership.ROLE_RANK[role] if role else -1
+            needs[space.pk] = required_view_ranks(space)
+        if ranks[space.pk] >= needs[space.pk].get(page.pk, 99):
+            out.append(page)
+        if len(out) >= limit:
+            break
+    return out
+
+
 @login_required
 def dashboard(request):
     from projects.models import Issue
@@ -39,10 +58,12 @@ def dashboard(request):
         .select_related('status', 'space', 'epic')
         .order_by('-updated_at')[:10]
     )
-    recent_pages = (
+    recent_pages = _filter_visible_pages(
+        request.user,
         Page.objects.filter(space__in=spaces)
         .select_related('space', 'updated_by')
-        .order_by('-updated_at')[:6]
+        .order_by('-updated_at')[:30],
+        limit=6,
     )
     return render(request, 'core/dashboard.html', {
         'software_spaces': [s for s in spaces if s.space_type == Space.TYPE_SOFTWARE],
@@ -68,12 +89,14 @@ def _search_results(request, limit):
         .select_related('status', 'space', 'assignee')
         .order_by('-updated_at')[:limit]
     )
-    pages = (
+    pages = _filter_visible_pages(
+        request.user,
         Page.objects.filter(space__in=spaces, title__icontains=q)
         .select_related('space')
-        .order_by('-updated_at')[:limit]
+        .order_by('-updated_at')[:limit * 4],
+        limit=limit,
     )
-    return q, list(issues), list(pages)
+    return q, list(issues), pages
 
 
 @login_required

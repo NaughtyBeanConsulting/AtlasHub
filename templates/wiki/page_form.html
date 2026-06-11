@@ -73,9 +73,20 @@
     {% endif %}
 
     <div class="mt-5 flex items-center justify-end gap-2">
+      {% if mode == 'edit' and not page.is_published or mode == 'create' %}
+        <span class="mr-auto text-xs text-n200">Drafts are only visible to space members.</span>
+      {% endif %}
       <a href="{% if mode == 'edit' %}{% url 'wiki:page' space.key page.slug %}{% elif parent %}{% url 'wiki:page' space.key parent.slug %}{% else %}{% url 'wiki:space_home' space.key %}{% endif %}"
          class="btn-subtle">Cancel</a>
-      <button type="submit" class="btn-primary">{% if mode == 'edit' %}Save page{% else %}Create page{% endif %}</button>
+      {% if mode == 'create' %}
+        <button type="submit" name="action" value="save_draft" class="btn-subtle">Save draft</button>
+        <button type="submit" name="action" value="publish" class="btn-primary">Publish</button>
+      {% elif page.is_published %}
+        <button type="submit" name="action" value="save" class="btn-primary">Save page</button>
+      {% else %}
+        <button type="submit" name="action" value="save_draft" class="btn-subtle">Save draft</button>
+        <button type="submit" name="action" value="publish" class="btn-primary">Publish</button>
+      {% endif %}
     </div>
   </form>
 </main>

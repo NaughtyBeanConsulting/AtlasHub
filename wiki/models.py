@@ -26,6 +26,17 @@ def unique_slug(space, title, exclude_pk=None):
 class Page(models.Model):
     """A wiki page in an arbitrarily nested tree (parent self-FK)."""
 
+    # Who may VIEW the page. Restrictions inherit down the tree: a page is at
+    # least as restricted as every ancestor. (Editing always needs member+.)
+    VIEW_VIEWER = 'viewer'
+    VIEW_MEMBER = 'member'
+    VIEW_ADMIN = 'admin'
+    VIEW_CHOICES = [
+        (VIEW_VIEWER, 'Everyone in the space'),
+        (VIEW_MEMBER, 'Members and admins'),
+        (VIEW_ADMIN, 'Admins only'),
+    ]
+
     space = models.ForeignKey(Space, on_delete=models.CASCADE, related_name='pages')
     parent = models.ForeignKey(
         'self', null=True, blank=True, on_delete=models.SET_NULL, related_name='children',
@@ -34,6 +45,9 @@ class Page(models.Model):
     slug = models.SlugField(max_length=90)
     body_md = models.TextField(blank=True)
     position = models.PositiveIntegerField(default=0)
+    view_role = models.CharField(max_length=10, choices=VIEW_CHOICES, default=VIEW_VIEWER)
+    # Draft pages are only visible to people who could edit them (member+).
+    is_published = models.BooleanField(default=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name='created_pages',
     )
@@ -70,6 +84,20 @@ class Page(models.Model):
             pks.update(children)
             frontier = children
         return pks
+
+    def effective_view_role(self):
+        """The strictest view_role along this page's ancestor chain."""
+        from core.models import SpaceMembership
+        rank = SpaceMembership.ROLE_RANK
+        strictest = self.view_role
+        for ancestor in self.ancestors():
+            if rank[ancestor.view_role] > rank[strictest]:
+                strictest = ancestor.view_role
+        return strictest
+
+    @property
+    def is_restricted(self):
+        return self.effective_view_role() != self.VIEW_VIEWER
 
 
 class PageVersion(models.Model):

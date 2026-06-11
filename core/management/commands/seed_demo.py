@@ -206,11 +206,11 @@ class Command(BaseCommand):
         for user, role in [(demo, 'admin'), (thandi, 'member'), (pieter, 'member')]:
             SpaceMembership.objects.create(space=eng, user=user, role=role)
 
-        def new_page(title, body, parent=None, position=0, author=demo):
+        def new_page(title, body, parent=None, position=0, author=demo, **extra):
             page = Page.objects.create(
                 space=eng, parent=parent, title=title,
                 slug=unique_slug(eng, title), body_md=body, position=position,
-                created_by=author, updated_by=author,
+                created_by=author, updated_by=author, **extra,
             )
             PageVersion.objects.create(page=page, number=1, title=title,
                                        body_md=body, edited_by=author)
@@ -252,6 +252,13 @@ class Command(BaseCommand):
             '- `systemctl restart atlashub-whatsapp-worker`\n'
             '- Re-pair from **/whatsapp/link/** if the session was logged out\n'
         ), parent=runbooks, position=1)
+        new_page('Loyalty rollout plan', (
+            'Working notes — not ready to share yet.\n\n'
+            '- [ ] Pick the earn rate\n- [ ] Decide redemption rules\n'
+        ), parent=runbooks, position=2, is_published=False)
+        new_page('Billing access & payouts', (
+            'Bank credentials rotation, payout schedule and Paystack dashboard access.\n'
+        ), position=3, view_role='admin')
         PageComment.objects.create(
             page=welcome, author=thandi,
             body_md=f'@[Demo Owner](u:{demo.pk}) shall we add the billing docs here too?',
