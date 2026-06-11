@@ -74,12 +74,17 @@
 
   <div class="ml-auto flex items-center gap-1">
     {% if search_url %}
-    <form action="{{ search_url }}" method="get" class="relative hidden sm:block">
+    <form action="{{ search_url }}" method="get" class="relative hidden sm:block"
+          x-data="dropdown" @click.outside="close">
       <span class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-n100">
         {% include 'components/icons.html' with name='search' class='h-3.5 w-3.5' %}
       </span>
-      <input type="search" name="q" value="{{ request.GET.q }}" placeholder="Search"
-             class="input w-44 !bg-white py-1 pl-7 transition-all focus:w-64">
+      <input type="search" name="q" value="{{ request.GET.q }}" placeholder="Search" autocomplete="off"
+             class="input w-44 !bg-white py-1 pl-7 transition-all focus:w-64"
+             hx-get="{% url 'core:quick_search' %}" hx-trigger="keyup changed delay:300ms"
+             hx-target="#quick-results" @focus="open = true" @keyup="open = true">
+      <div id="quick-results" x-cloak x-show="open"
+           class="menu absolute right-0 top-9 max-h-96 w-80 overflow-y-auto"></div>
     </form>
     {% endif %}
 

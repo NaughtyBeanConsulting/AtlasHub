@@ -1,0 +1,28 @@
+{% if q %}
+  {% if issues %}
+    <p class="menu-heading">Issues</p>
+    {% for issue in issues %}
+      <a class="menu-item" href="{% url 'projects:browse' issue.key %}">
+        {% include 'components/icons.html' with name=issue.issue_type class='h-4 w-4 shrink-0' %}
+        <span class="w-16 shrink-0 text-xs font-medium text-n200">{{ issue.key }}</span>
+        <span class="min-w-0 flex-1 truncate">{{ issue.summary }}</span>
+      </a>
+    {% endfor %}
+  {% endif %}
+  {% if pages %}
+    <p class="menu-heading">Pages</p>
+    {% for page in pages %}
+      <a class="menu-item" href="{% url 'wiki:page' page.space.key page.slug %}">
+        {% include 'components/icons.html' with name='page' class='h-4 w-4 shrink-0 text-blue-400' %}
+        <span class="min-w-0 flex-1 truncate">{{ page.title }}</span>
+        <span class="text-xs text-n100">{{ page.space.key }}</span>
+      </a>
+    {% endfor %}
+  {% endif %}
+  {% if not issues and not pages %}
+    <p class="px-4 py-2.5 text-sm italic text-n100">No results for “{{ q }}”.</p>
+  {% else %}
+    <div class="my-1 border-t border-n30"></div>
+    <a class="menu-item text-blue-500" href="{% url 'core:search' %}?q={{ q|urlencode }}">All results for “{{ q }}”</a>
+  {% endif %}
+{% endif %}

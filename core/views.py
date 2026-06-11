@@ -28,11 +28,66 @@ def mentions(request, space):
 
 @login_required
 def dashboard(request):
+    from projects.models import Issue
+    from wiki.models import Page
+
     spaces = list(request.user.spaces.all())
+    assigned = (
+        Issue.objects
+        .filter(assignee=request.user, space__in=spaces)
+        .exclude(status__category='done')
+        .select_related('status', 'space', 'epic')
+        .order_by('-updated_at')[:10]
+    )
+    recent_pages = (
+        Page.objects.filter(space__in=spaces)
+        .select_related('space', 'updated_by')
+        .order_by('-updated_at')[:6]
+    )
     return render(request, 'core/dashboard.html', {
         'software_spaces': [s for s in spaces if s.space_type == Space.TYPE_SOFTWARE],
         'wiki_spaces': [s for s in spaces if s.space_type == Space.TYPE_WIKI],
+        'assigned_issues': assigned,
+        'recent_pages': recent_pages,
     })
+
+
+def _search_results(request, limit):
+    from django.db.models import Q
+
+    from projects.models import Issue
+    from wiki.models import Page
+
+    q = request.GET.get('q', '').strip()
+    if not q:
+        return q, [], []
+    spaces = request.user.spaces.all()
+    issues = (
+        Issue.objects.filter(space__in=spaces)
+        .filter(Q(key__icontains=q) | Q(summary__icontains=q))
+        .select_related('status', 'space', 'assignee')
+        .order_by('-updated_at')[:limit]
+    )
+    pages = (
+        Page.objects.filter(space__in=spaces, title__icontains=q)
+        .select_related('space')
+        .order_by('-updated_at')[:limit]
+    )
+    return q, list(issues), list(pages)
+
+
+@login_required
+def search(request):
+    q, issues, pages = _search_results(request, limit=25)
+    return render(request, 'core/search.html', {'q': q, 'issues': issues, 'pages': pages})
+
+
+@login_required
+def quick_search(request):
+    """Topnav dropdown partial."""
+    q, issues, pages = _search_results(request, limit=5)
+    return render(request, 'core/partials/quick_search.html',
+                  {'q': q, 'issues': issues, 'pages': pages})
 
 
 @login_required

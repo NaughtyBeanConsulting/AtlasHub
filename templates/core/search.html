@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}Search{% if q %} “{{ q }}”{% endif %} — AtlasHub{% endblock %}
+
+{% block body %}
+<main class="mx-auto w-full max-w-3xl px-6 py-10">
+  <form method="get" class="mb-8">
+    <div class="relative">
+      <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-n100">
+        {% include 'components/icons.html' with name='search' class='h-4 w-4' %}
+      </span>
+      <input type="search" name="q" value="{{ q }}" autofocus placeholder="Search issues and pages"
+             class="input !py-2.5 !pl-10 text-base">
+    </div>
+  </form>
+
+  {% if q %}
+    <h2 class="section-label">Issues ({{ issues|length }})</h2>
+    <ul class="card mb-8 divide-y divide-n30">
+      {% for issue in issues %}
+        <li>
+          <a href="{% url 'projects:browse' issue.key %}" class="flex items-center gap-2.5 px-4 py-2.5 hover:bg-n10">
+            {% include 'components/icons.html' with name=issue.issue_type class='h-4 w-4 shrink-0' %}
+            <span class="text-xs font-medium text-n200">{{ issue.key }}</span>
+            <span class="min-w-0 flex-1 truncate text-sm text-n800">{{ issue.summary }}</span>
+            <span class="lozenge {{ issue.status.lozenge_class }}">{{ issue.status.name }}</span>
+            {% include 'components/avatar.html' with u=issue.assignee %}
+          </a>
+        </li>
+      {% empty %}
+        <li class="px-4 py-4 text-sm italic text-n100">No matching issues.</li>
+      {% endfor %}
+    </ul>
+
+    <h2 class="section-label">Pages ({{ pages|length }})</h2>
+    <ul class="card divide-y divide-n30">
+      {% for page in pages %}
+        <li>
+          <a href="{% url 'wiki:page' page.space.key page.slug %}" class="flex items-center gap-2.5 px-4 py-2.5 hover:bg-n10">
+            {% include 'components/icons.html' with name='page' class='h-4 w-4 shrink-0 text-blue-400' %}
+            <span class="min-w-0 flex-1 truncate text-sm text-n800">{{ page.title }}</span>
+            <span class="text-xs text-n200">{{ page.space.name }}</span>
+          </a>
+        </li>
+      {% empty %}
+        <li class="px-4 py-4 text-sm italic text-n100">No matching pages.</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-center text-sm text-n200">Type something to search the issues and pages in your spaces.</p>
+  {% endif %}
+</main>
+{% endblock %}

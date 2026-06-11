@@ -19,7 +19,43 @@
       <a href="{% url 'core:space_create' %}" class="btn-primary mt-2">Create a space</a>
     </div>
   {% else %}
-    {% block your_work_extra %}{% endblock %}
+    {% if assigned_issues %}
+      <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-n300">Assigned to you</h2>
+      <ul class="card mb-10 divide-y divide-n30">
+        {% for issue in assigned_issues %}
+          <li>
+            <a href="{% url 'projects:browse' issue.key %}" class="flex items-center gap-2.5 px-4 py-2.5 hover:bg-n10">
+              {% include 'components/icons.html' with name=issue.issue_type class='h-4 w-4 shrink-0' %}
+              <span class="w-16 shrink-0 text-xs font-medium text-n200">{{ issue.key }}</span>
+              <span class="min-w-0 flex-1 truncate text-sm text-n800">{{ issue.summary }}</span>
+              {% if issue.epic %}
+                <span class="lozenge hidden sm:inline-flex"
+                      style="background-color: {{ issue.epic.epic_color }}22; color: {{ issue.epic.epic_color }}">
+                  {{ issue.epic.summary|truncatechars:20 }}
+                </span>
+              {% endif %}
+              <span class="lozenge {{ issue.status.lozenge_class }}">{{ issue.status.name }}</span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% if recent_pages %}
+      <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-n300">Recently updated pages</h2>
+      <ul class="card mb-10 divide-y divide-n30">
+        {% for page in recent_pages %}
+          <li>
+            <a href="{% url 'wiki:page' page.space.key page.slug %}" class="flex items-center gap-2.5 px-4 py-2.5 hover:bg-n10">
+              {% include 'components/icons.html' with name='page' class='h-4 w-4 shrink-0 text-blue-400' %}
+              <span class="min-w-0 flex-1 truncate text-sm text-n800">{{ page.title }}</span>
+              <span class="hidden text-xs text-n200 sm:block">{{ page.space.name }}</span>
+              <span class="text-xs text-n100">{{ page.updated_at|timesince }} ago</span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
 
     {% if software_spaces %}
       <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-n300">Projects</h2>
