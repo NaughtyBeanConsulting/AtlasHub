@@ -18,7 +18,6 @@ urlpatterns = [
     path('projects/<str:key>/sprints/<int:sprint_id>/start/', views.sprint_start, name='sprint_start'),
     path('projects/<str:key>/sprints/<int:sprint_id>/complete/', views.sprint_complete, name='sprint_complete'),
     path('projects/<str:key>/timeline/', views.timeline, name='timeline'),
-    path('projects/<str:key>/mentions/', views.mentions, name='mentions'),
     path('browse/<str:issue_key>/', views.issue_browse, name='browse'),
     path('browse/<str:issue_key>/panel/', views.issue_panel, name='issue_panel'),
     path('browse/<str:issue_key>/field/<str:field>/', views.issue_field, name='issue_field'),

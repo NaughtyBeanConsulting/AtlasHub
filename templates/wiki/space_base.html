@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<div class="flex min-h-[calc(100vh-3.5rem)]">
+  <aside class="hidden w-64 shrink-0 flex-col border-r border-n30 bg-n10 px-3 pb-6 pt-5 md:flex">
+    <div class="mb-5 flex items-center gap-2.5 px-2">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[3px] text-sm font-bold text-white"
+            style="background-color: {{ space.color }}">{{ space.key|slice:':1' }}</span>
+      <div class="min-w-0">
+        <a href="{% url 'wiki:space_home' space.key %}" class="block truncate text-sm font-semibold text-n800 hover:text-blue-500">{{ space.name }}</a>
+        <p class="text-xs text-n200">Wiki space</p>
+      </div>
+    </div>
+
+    {% if can_edit %}
+      <a href="{% url 'wiki:page_create' space.key %}" class="btn-subtle mx-2 mb-4 justify-start">
+        {% include 'components/icons.html' with name='plus' class='h-3.5 w-3.5' %} Create page
+      </a>
+    {% endif %}
+
+    <p class="menu-heading !px-2">Pages</p>
+    <ul class="js-tree-list min-h-[1rem] overflow-y-auto px-1" data-parent=""
+        data-url="{% url 'wiki:tree_reorder' space.key %}">
+      {% for node in tree %}
+        {% include 'wiki/partials/tree_node.html' with node=node %}
+      {% endfor %}
+    </ul>
+
+    <div class="mt-auto border-t border-n30 pt-3">
+      {% if request.space_role == 'admin' %}
+        <a href="{% url 'core:space_settings' space.key %}" class="side-item">
+          {% include 'components/icons.html' with name='move' class='h-4 w-4' %} Space settings
+        </a>
+      {% endif %}
+    </div>
+  </aside>
+  <div class="min-w-0 flex-1">{% block space_content %}{% endblock %}</div>
+</div>
+{% endblock %}

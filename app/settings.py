@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'accounts',
     'core',
     'projects',
+    'wiki',
 ]
 
 MIDDLEWARE = [

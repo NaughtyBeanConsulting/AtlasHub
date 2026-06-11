@@ -1,0 +1,32 @@
+{% extends 'wiki/space_base.html' %}
+
+{% block title %}Move {{ page.title }} — {{ space.name }}{% endblock %}
+
+{% block space_content %}
+<main class="mx-auto w-full max-w-xl px-8 py-10">
+  <h1 class="mb-1 text-xl font-medium text-n800">Move “{{ page.title }}”</h1>
+  <p class="mb-6 text-sm text-n200">
+    Currently under
+    {% if breadcrumbs %}“{{ breadcrumbs|last }}”{% else %}the top level{% endif %}.
+    A page can't be moved under itself or one of its sub-pages.
+  </p>
+  <div class="card p-6">
+    <form method="post">
+      {% csrf_token %}
+      <label class="label" for="move-parent">New location</label>
+      <select id="move-parent" name="parent" class="input mb-6">
+        <option value="">— Top level —</option>
+        {% for candidate in candidates %}
+          <option value="{{ candidate.id }}" {% if candidate.id == page.parent_id %}selected{% endif %}>
+            {{ candidate.title }}
+          </option>
+        {% endfor %}
+      </select>
+      <div class="flex justify-end gap-2">
+        <a href="{% url 'wiki:page' space.key page.slug %}" class="btn-subtle">Cancel</a>
+        <button type="submit" class="btn-primary">Move page</button>
+      </div>
+    </form>
+  </div>
+</main>
+{% endblock %}

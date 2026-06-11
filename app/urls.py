@@ -9,4 +9,5 @@ urlpatterns = [
     path('', core_views.dashboard, name='dashboard'),
     path('', include('core.urls')),
     path('', include('projects.urls')),
+    path('', include('wiki.urls')),
 ]

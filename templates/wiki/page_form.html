@@ -1,0 +1,82 @@
+{% extends 'wiki/space_base.html' %}
+
+{% block title %}{% if mode == 'edit' %}Edit {{ page.title }}{% else %}New page{% endif %} — {{ space.name }}{% endblock %}
+
+{% block space_content %}
+<main class="mx-auto w-full max-w-3xl px-8 py-7">
+  <nav class="mb-4 text-xs text-n200">
+    <a href="{% url 'wiki:space_home' space.key %}" class="hover:underline">{{ space.name }}</a>
+    <span class="mx-1">/</span>
+    {% if mode == 'edit' %}Editing “{{ page.title }}”{% elif parent %}New page under “{{ parent.title }}”{% else %}New page{% endif %}
+  </nav>
+
+  <form method="post"
+        action="{% if mode == 'edit' %}{% url 'wiki:page_edit' space.key page.slug %}{% else %}{% url 'wiki:page_create' space.key %}{% endif %}">
+    {% csrf_token %}
+    {% if parent %}<input type="hidden" name="parent" value="{{ parent.id }}">{% endif %}
+
+    <input name="title" required maxlength="200" placeholder="Page title"
+           value="{{ page.title|default:'' }}"
+           class="mb-4 block w-full border-0 bg-transparent text-2xl font-medium text-n800 placeholder-n50 focus:outline-none focus:ring-0">
+
+    <div x-data="mdEditor('{% url 'core:mentions' space.key %}')">
+      <div class="flex items-center justify-between border-b border-n30">
+        <div class="flex">
+          <button type="button" class="tab-btn" :class="tab === 'write' && 'tab-btn-active'"
+                  @click="tab = 'write'">Write</button>
+          <button type="button" class="tab-btn" :class="tab === 'preview' && 'tab-btn-active'"
+                  @click="tab = 'preview'"
+                  hx-post="{% url 'wiki:preview' space.key %}"
+                  hx-include="[name='body_md']"
+                  hx-vals='{"page": "{{ page.id|default:'' }}"}'
+                  hx-target="#md-preview" hx-swap="innerHTML">Preview</button>
+        </div>
+        {% if mode == 'edit' %}
+          <button type="button" class="btn-ghost !py-1 text-xs"
+                  @click="insertDiagram('{% url 'wiki:diagram_create' space.key %}', {{ page.id }})">
+            {% include 'components/icons.html' with name='diagram' class='h-3.5 w-3.5' %} Insert draw.io diagram
+          </button>
+        {% endif %}
+      </div>
+
+      <div x-show="tab === 'write'">
+        {% include 'components/markdown_toolbar.html' %}
+        <div class="relative">
+          <textarea name="body_md" rows="20" x-ref="ta" @input="onInput" @keydown.escape="show = false"
+                    class="input font-mono !text-[13px] !leading-relaxed"
+                    placeholder="Write in markdown. ```mermaid blocks render as diagrams; @ mentions someone.">{{ page.body_md|default:'' }}</textarea>
+          <div x-cloak x-show="show" class="menu absolute left-2 top-full z-50 -mt-1 max-h-44 overflow-y-auto">
+            <template x-for="r in results" :key="r.id">
+              <button type="button" class="menu-item" @click="pick(r)" x-text="r.name"></button>
+            </template>
+          </div>
+        </div>
+      </div>
+      <div x-cloak x-show="tab === 'preview'" id="md-preview"
+           class="min-h-[20rem] rounded-[3px] border border-n30 p-4">
+        <p class="text-sm italic text-n100">Rendering…</p>
+      </div>
+    </div>
+
+    {% if mode == 'edit' and diagrams %}
+      <div class="mt-3 rounded-[3px] bg-n10 px-3 py-2">
+        <p class="mb-1 text-xs font-semibold text-n300">Diagrams on this page</p>
+        <ul class="flex flex-wrap gap-3">
+          {% for d in diagrams %}
+            <li class="text-xs">
+              <a class="text-blue-500 hover:underline" href="{% url 'wiki:diagram_edit' space.key d.id %}">{{ d.title }}</a>
+              <span class="text-n100">(```drawio:{{ d.id }}```)</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <div class="mt-5 flex items-center justify-end gap-2">
+      <a href="{% if mode == 'edit' %}{% url 'wiki:page' space.key page.slug %}{% elif parent %}{% url 'wiki:page' space.key parent.slug %}{% else %}{% url 'wiki:space_home' space.key %}{% endif %}"
+         class="btn-subtle">Cancel</a>
+      <button type="submit" class="btn-primary">{% if mode == 'edit' %}Save page{% else %}Create page{% endif %}</button>
+    </div>
+  </form>
+</main>
+{% endblock %}

@@ -1,11 +1,29 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 
 from .decorators import space_required
 from .forms import AddMemberForm, SpaceForm
 from .models import Space, SpaceMembership
+
+
+@space_required()
+def mentions(request, space):
+    """JSON autocomplete source for @mentions (space members) — shared by the
+    issue and wiki editors."""
+    q = request.GET.get('q', '').strip()
+    members = space.members.filter(is_active=True)
+    if q:
+        members = (
+            members.filter(first_name__icontains=q)
+            | members.filter(last_name__icontains=q)
+            | members.filter(email__icontains=q)
+        )
+    return JsonResponse({'results': [
+        {'id': m.pk, 'name': m.display_name} for m in members.distinct()[:8]
+    ]})
 
 
 @login_required

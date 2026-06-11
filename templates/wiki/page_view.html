@@ -1,0 +1,61 @@
+{% extends 'wiki/space_base.html' %}
+
+{% block title %}{{ page.title }} — {{ space.name }}{% endblock %}
+
+{% block space_content %}
+<main class="mx-auto w-full max-w-3xl px-8 py-7">
+  <nav class="mb-2 flex flex-wrap items-center gap-1 text-xs text-n200">
+    <a href="{% url 'wiki:space_home' space.key %}" class="hover:underline">{{ space.name }}</a>
+    {% for crumb in breadcrumbs %}
+      <span>/</span>
+      <a href="{% url 'wiki:page' space.key crumb.slug %}" class="hover:underline">{{ crumb.title }}</a>
+    {% endfor %}
+  </nav>
+
+  <div class="mb-1 flex items-start justify-between gap-3">
+    <h1 class="text-2xl font-medium text-n800">{{ page.title }}</h1>
+    {% if can_edit %}
+      <div class="flex shrink-0 items-center gap-1" x-data="dropdown">
+        <a href="{% url 'wiki:page_edit' space.key page.slug %}" class="btn-subtle">
+          {% include 'components/icons.html' with name='pencil' class='h-3.5 w-3.5' %} Edit
+        </a>
+        <div class="relative">
+          <button @click="toggle" @click.outside="close" class="btn-icon" title="More actions">
+            {% include 'components/icons.html' with name='dots' class='h-4 w-4' %}
+          </button>
+          <div x-cloak x-show="open" x-transition.origin.top.right class="menu absolute right-0 top-9">
+            <a class="menu-item" href="{% url 'wiki:page_create' space.key %}?parent={{ page.id }}">
+              {% include 'components/icons.html' with name='plus' class='h-4 w-4' %} Add a page inside
+            </a>
+            <a class="menu-item" href="{% url 'wiki:page_move' space.key page.slug %}">
+              {% include 'components/icons.html' with name='move' class='h-4 w-4' %} Move
+            </a>
+            <a class="menu-item" href="{% url 'wiki:page_history' space.key page.slug %}">
+              {% include 'components/icons.html' with name='history' class='h-4 w-4' %} Version history
+            </a>
+            <div class="my-1 border-t border-n30"></div>
+            <form method="post" action="{% url 'wiki:page_delete' space.key page.slug %}"
+                  onsubmit="return confirm('Delete “{{ page.title }}”? Sub-pages move up a level.')">
+              {% csrf_token %}
+              <button type="submit" class="menu-item text-red-500">
+                {% include 'components/icons.html' with name='trash' class='h-4 w-4' %} Delete
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+  <p class="mb-6 text-xs text-n100">
+    Updated {{ page.updated_at|timesince }} ago
+    {% if page.updated_by %}by {{ page.updated_by.display_name }}{% endif %}
+  </p>
+
+  <article class="prose-ah">{{ html|safe }}</article>
+
+  <section class="mt-12 border-t border-n30 pt-6">
+    <h2 class="section-label">Comments</h2>
+    {% include 'wiki/partials/page_comments.html' %}
+  </section>
+</main>
+{% endblock %}

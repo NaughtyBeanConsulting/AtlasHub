@@ -589,23 +589,6 @@ def issue_activity(request, issue_key):
     })
 
 
-@space_required()
-def mentions(request, space):
-    """JSON autocomplete source for @mentions (space members)."""
-    from django.http import JsonResponse
-    q = request.GET.get('q', '').strip()
-    members = space.members.filter(is_active=True)
-    if q:
-        members = (
-            members.filter(first_name__icontains=q)
-            | members.filter(last_name__icontains=q)
-            | members.filter(email__icontains=q)
-        )
-    return JsonResponse({'results': [
-        {'id': m.pk, 'name': m.display_name} for m in members.distinct()[:8]
-    ]})
-
-
 # ── Timeline ─────────────────────────────────────────────────────────────────
 
 @space_required(space_type=Space.TYPE_SOFTWARE)

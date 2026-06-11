@@ -1,0 +1,28 @@
+<li data-id="{{ node.id }}">
+  <div class="group flex items-center gap-1 rounded-[3px] px-1.5 py-1 hover:bg-n30
+              {% if node.id == current_page_id %}bg-blue-50{% endif %}">
+    {% if can_edit %}
+      <span class="js-tree-grip cursor-grab text-n50 opacity-0 transition-opacity group-hover:opacity-100">
+        {% include 'components/icons.html' with name='grip' class='h-3.5 w-3.5' %}
+      </span>
+    {% endif %}
+    <a href="{% url 'wiki:page' space.key node.slug %}"
+       class="min-w-0 flex-1 truncate text-sm {% if node.id == current_page_id %}font-medium text-blue-600{% else %}text-n500 hover:text-blue-500{% endif %}">
+      {{ node.title }}
+    </a>
+    {% if can_edit %}
+      <a href="{% url 'wiki:page_create' space.key %}?parent={{ node.id }}"
+         class="text-n100 opacity-0 transition-opacity hover:text-blue-500 group-hover:opacity-100" title="Add a page inside">
+        {% include 'components/icons.html' with name='plus' class='h-3.5 w-3.5' %}
+      </a>
+    {% endif %}
+  </div>
+  {% if node.child_nodes %}
+    <ul class="js-tree-list ml-3 border-l border-n30 pl-1.5" data-parent="{{ node.id }}"
+        data-url="{% url 'wiki:tree_reorder' space.key %}">
+      {% for child in node.child_nodes %}
+        {% include 'wiki/partials/tree_node.html' with node=child %}
+      {% endfor %}
+    </ul>
+  {% endif %}
+</li>

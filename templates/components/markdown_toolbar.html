@@ -1,0 +1,20 @@
+{% comment %}Buttons for the mdEditor Alpine component (expects wrap()/block() in scope).{% endcomment %}
+<div class="flex flex-wrap items-center gap-0.5 border-b border-n30 bg-n10 px-1 py-1">
+  <button type="button" class="md-btn font-bold" title="Bold" @click="wrap('**')">B</button>
+  <button type="button" class="md-btn italic" title="Italic" @click="wrap('*')">I</button>
+  <button type="button" class="md-btn" title="Heading" @click="block('## Heading')">H</button>
+  <span class="mx-1 h-4 w-px bg-n40"></span>
+  <button type="button" class="md-btn" title="Quote" @click="block('> quote')">”</button>
+  <button type="button" class="md-btn" title="Bulleted list" @click="block('- item')">•</button>
+  <button type="button" class="md-btn" title="Numbered list" @click="block('1. item')">1.</button>
+  <span class="mx-1 h-4 w-px bg-n40"></span>
+  <button type="button" class="md-btn font-mono" title="Inline code" @click="wrap('`')">&lt;&gt;</button>
+  <button type="button" class="md-btn font-mono" title="Code block" @click="block('```\ncode\n```')">```</button>
+  <button type="button" class="md-btn" title="Link" @click="wrap('[', '](https://)')">
+    {% include 'components/icons.html' with name='link' class='h-3.5 w-3.5' %}
+  </button>
+  <button type="button" class="md-btn" title="Table" @click="block('| Column | Column |\n| --- | --- |\n|  |  |')">⊞</button>
+  <button type="button" class="md-btn" title="Mermaid diagram" @click="block('```mermaid\ngraph TD;\n  A --> B;\n```')">
+    {% include 'components/icons.html' with name='diagram' class='h-3.5 w-3.5' %}
+  </button>
+</div>

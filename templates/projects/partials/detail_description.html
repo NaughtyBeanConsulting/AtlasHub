@@ -14,7 +14,7 @@
     <form x-cloak x-show="editing"
           hx-post="{% url 'projects:issue_field' issue.key 'description' %}"
           hx-target="#issue-description" hx-swap="outerHTML">
-      <div x-data="mentionBox('{% url 'projects:mentions' space.key %}')" class="relative">
+      <div x-data="mentionBox('{% url 'core:mentions' space.key %}')" class="relative">
         <textarea name="value" rows="7" x-ref="ta" @input="onInput" @keydown.escape="show = false"
                   class="input font-mono !text-[13px]"
                   placeholder="Describe the work. Markdown and @mentions are supported.">{{ issue.description_md }}</textarea>

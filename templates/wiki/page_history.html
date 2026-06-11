@@ -1,0 +1,46 @@
+{% extends 'wiki/space_base.html' %}
+
+{% block title %}History of {{ page.title }} — {{ space.name }}{% endblock %}
+
+{% block space_content %}
+<main class="mx-auto w-full max-w-2xl px-8 py-10">
+  <nav class="mb-2 text-xs text-n200">
+    <a href="{% url 'wiki:page' space.key page.slug %}" class="hover:underline">{{ page.title }}</a>
+    <span class="mx-1">/</span> Version history
+  </nav>
+  <h1 class="mb-6 text-xl font-medium text-n800">Version history</h1>
+
+  <ul class="card divide-y divide-n30">
+    {% for version in versions %}
+      <li class="px-4 py-3">
+        <div class="flex items-center gap-3">
+          {% include 'components/avatar.html' with u=version.edited_by %}
+          <div class="min-w-0 flex-1">
+            <p class="text-sm text-n800">
+              <span class="font-medium">v{{ version.number }}</span> — {{ version.title }}
+            </p>
+            <p class="text-xs text-n200">
+              {{ version.edited_by.display_name|default:'Someone' }} ·
+              {{ version.created_at|date:'j M Y, H:i' }}
+            </p>
+          </div>
+          {% if not forloop.first %}
+            <form method="post" action="{% url 'wiki:page_restore' space.key page.slug version.id %}">
+              {% csrf_token %}
+              <button type="submit" class="btn-subtle !py-1 text-xs">Restore</button>
+            </form>
+          {% else %}
+            <span class="lozenge lozenge-done">Current</span>
+          {% endif %}
+        </div>
+        <details class="mt-1.5">
+          <summary class="cursor-pointer text-xs text-blue-500 hover:underline">Show content</summary>
+          <pre class="mt-2 max-h-64 overflow-auto rounded-[3px] bg-n20 p-3 text-xs text-n600">{{ version.body_md }}</pre>
+        </details>
+      </li>
+    {% empty %}
+      <li class="px-4 py-6 text-sm italic text-n100">No versions recorded yet.</li>
+    {% endfor %}
+  </ul>
+</main>
+{% endblock %}

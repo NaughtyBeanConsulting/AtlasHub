@@ -77,6 +77,50 @@
 .prose-ah hr { border-color: #dfe1e6; }
 .prose-ah img { max-width: 100%; border-radius: 3px; }
 
+/* draw.io embeds (markup produced by wiki.services, not scanned by Tailwind). */
+.drawio-embed {
+  display: block;
+  position: relative;
+  margin: 0.75rem 0;
+  border: 1px solid #ebecf0;
+  border-radius: 3px;
+  padding: 0.75rem;
+  text-align: center;
+}
+.drawio-embed img {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+}
+.drawio-embed .drawio-edit {
+  position: absolute;
+  right: 0.5rem;
+  top: 0.5rem;
+  background: #f4f5f7;
+  border-radius: 3px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #42526e;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.drawio-embed:hover .drawio-edit {
+  opacity: 1;
+}
+.drawio-embed .drawio-edit:hover {
+  background: #deebff;
+  color: #0747a6;
+}
+.drawio-placeholder,
+.drawio-missing {
+  display: block;
+  font-size: 0.8125rem;
+  color: #7a869a;
+  font-style: italic;
+  padding: 1.5rem 0;
+}
+
 /* @mention chip (also used outside .prose-ah, e.g. in autocomplete). */
 .mention {
   background: #deebff;
@@ -167,6 +211,11 @@
   }
   .tab-btn-active {
     @apply border-blue-500 text-blue-500;
+  }
+
+  /* Markdown editor toolbar */
+  .md-btn {
+    @apply inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded-[3px] px-1.5 text-sm text-n400 transition-colors hover:bg-n30 hover:text-n800;
   }
 
   /* Badges & pills */

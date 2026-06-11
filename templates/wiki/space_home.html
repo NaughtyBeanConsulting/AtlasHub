@@ -1,0 +1,21 @@
+{% extends 'wiki/space_base.html' %}
+
+{% block title %}{{ space.name }} — AtlasHub{% endblock %}
+
+{% block space_content %}
+<main class="flex h-full items-center justify-center px-6 py-10">
+  <div class="card flex flex-col items-center gap-3 p-12 text-center">
+    <span class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-500">
+      {% include 'components/icons.html' with name='page' class='h-6 w-6' %}
+    </span>
+    <h2 class="text-lg font-medium text-n800">{{ space.name }} is empty</h2>
+    <p class="max-w-md text-sm text-n200">
+      Write your first page — markdown, ```mermaid diagrams and draw.io drawings
+      are all supported.
+    </p>
+    {% if can_edit %}
+      <a href="{% url 'wiki:page_create' space.key %}" class="btn-primary mt-2">Create the first page</a>
+    {% endif %}
+  </div>
+</main>
+{% endblock %}
