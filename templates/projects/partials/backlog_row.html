@@ -15,6 +15,14 @@
       {{ issue.epic.summary|truncatechars:24 }}
     </span>
   {% endif %}
+  {% if has_active_sprint and not issue.sprint_id and request.space_role != 'viewer' %}
+    <button type="button" class="btn-icon !h-6 !w-6 text-n100 opacity-0 transition-opacity hover:text-blue-500 group-hover:opacity-100"
+            title="Pull into the active sprint"
+            hx-post="{% url 'projects:sprint_quick_add' space.key %}"
+            hx-vals='{"issue": "{{ issue.id }}"}' hx-swap="none">
+      {% include 'components/icons.html' with name='sprint' class='h-3.5 w-3.5' %}
+    </button>
+  {% endif %}
   <span class="lozenge {{ issue.status.lozenge_class }}">{{ issue.status.name }}</span>
   {% with pname='p-'|add:issue.priority %}
     <span title="{{ issue.get_priority_display }} priority">{% include 'components/icons.html' with name=pname class='h-3.5 w-3.5' %}</span>

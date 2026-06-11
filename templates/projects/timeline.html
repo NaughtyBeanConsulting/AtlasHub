@@ -12,73 +12,102 @@
   <h1 class="mb-6 text-xl font-medium text-n800">Timeline</h1>
 
   {% if weeks %}
-    <div class="card overflow-hidden">
-      <div class="flex">
-        {# Fixed label column #}
-        <div class="w-56 shrink-0 border-r border-n30">
-          <div class="flex h-9 items-end border-b border-n30 px-3 pb-1 text-[11px] font-bold uppercase tracking-wide text-n200">Sprints</div>
-          <div class="h-10 border-b border-n30"></div>
-          <div class="flex h-9 items-end px-3 pb-1 text-[11px] font-bold uppercase tracking-wide text-n200">Epics</div>
-          {% for bar in epic_bars %}
-            <div class="flex h-10 items-center gap-1.5 border-t border-n30 px-3">
-              {% include 'components/icons.html' with name='epic' class='h-3.5 w-3.5 shrink-0' %}
-              <a href="{% url 'projects:browse' bar.epic.key %}"
-                 class="truncate text-sm text-n800 hover:text-blue-500 hover:underline">{{ bar.epic.summary }}</a>
+    <div class="card overflow-x-auto">
+      <div class="relative" style="min-width: calc(14rem + {{ total_days }} * 1.1rem)">
+        {% if today_pct %}
+          <div class="pointer-events-none absolute bottom-0 top-0 z-20 w-px bg-red-400"
+               style="left: calc(14rem + (100% - 14rem) * {{ today_pct }} / 100)" title="Today"></div>
+        {% endif %}
+
+        {# Week header #}
+        <div class="grid h-9 items-end border-b border-n30"
+             style="grid-template-columns: 14rem repeat({{ total_days }}, minmax(0, 1fr))">
+          <div class="sticky left-0 z-10 h-full border-r border-n30 bg-white"></div>
+          {% for week in weeks %}
+            <div class="border-l border-n30 px-1 pb-1 text-[10px] text-n100" style="grid-column: span 7">
+              {{ week|date:'j M' }}
             </div>
           {% endfor %}
         </div>
 
-        {# Scrollable chart #}
-        <div class="flex-1 overflow-x-auto">
-          <div class="relative" style="min-width: calc({{ total_days }} * 1.1rem)">
-            {% if today_pct %}
-              <div class="absolute bottom-0 top-0 z-10 w-px bg-red-400" style="left: {{ today_pct }}%"
-                   title="Today"></div>
-            {% endif %}
-
-            {# Week header #}
-            <div class="grid h-9 items-end border-b border-n30"
-                 style="grid-template-columns: repeat({{ total_days }}, minmax(0, 1fr))">
-              {% for week in weeks %}
-                <div class="border-l border-n30 px-1 pb-1 text-[10px] text-n100" style="grid-column: span 7">
-                  {{ week|date:'j M' }}
-                </div>
-              {% endfor %}
+        {# Sprint band #}
+        <div class="grid h-10 items-center border-b border-n30"
+             style="grid-template-columns: 14rem repeat({{ total_days }}, minmax(0, 1fr))">
+          <div class="sticky left-0 z-10 flex h-full items-center border-r border-n30 bg-white px-3 text-[11px] font-bold uppercase tracking-wide text-n200">
+            Sprints
+          </div>
+          {% for bar in sprint_bars %}
+            <div class="row-start-1 mx-px flex h-6 items-center truncate rounded-[3px] px-2 text-[11px] font-medium
+                        {% if bar.sprint.state == 'active' %}bg-blue-500 text-white{% elif bar.sprint.state == 'completed' %}bg-n40 text-n500{% else %}bg-blue-50 text-blue-600{% endif %}"
+                 style="grid-column: {{ bar.start|add:1 }} / span {{ bar.span }}"
+                 title="{{ bar.sprint.name }}: {{ bar.sprint.start_date|date:'j M' }} – {{ bar.sprint.end_date|date:'j M' }}{% if bar.sprint.state == 'active' %} (active){% endif %}">
+              {{ bar.sprint.name }}
             </div>
+          {% endfor %}
+        </div>
 
-            {# Sprint band #}
-            <div class="grid h-10 items-center border-b border-n30"
-                 style="grid-template-columns: repeat({{ total_days }}, minmax(0, 1fr))">
-              {% for bar in sprint_bars %}
-                <div class="row-start-1 mx-px flex h-6 items-center truncate rounded-[3px] px-2 text-[11px] font-medium
-                            {% if bar.sprint.state == 'active' %}bg-blue-500 text-white{% elif bar.sprint.state == 'completed' %}bg-n40 text-n500{% else %}bg-blue-50 text-blue-600{% endif %}"
-                     style="grid-column: {{ bar.start }} / span {{ bar.span }}"
-                     title="{{ bar.sprint.name }}: {{ bar.sprint.start_date|date:'j M' }} – {{ bar.sprint.end_date|date:'j M' }}{% if bar.sprint.state == 'active' %} (active){% endif %}">
-                  {{ bar.sprint.name }}
-                </div>
-              {% endfor %}
-            </div>
-
-            <div class="h-9"></div>
-
-            {# Epic bars #}
-            {% for bar in epic_bars %}
-              <div class="grid h-10 items-center border-t border-n30"
-                   style="grid-template-columns: repeat({{ total_days }}, minmax(0, 1fr))">
-                <div class="row-start-1 mx-px h-5 truncate rounded-full px-2 text-[10px] font-medium leading-5 text-white"
-                     style="grid-column: {{ bar.start }} / span {{ bar.span }}; background-color: {{ bar.epic.epic_color }}"
-                     title="{{ bar.epic.key }} {{ bar.epic.summary }}">
-                  {{ bar.epic.summary }}
-                </div>
-              </div>
-            {% endfor %}
+        {# Epics label row #}
+        <div class="grid h-8 items-end"
+             style="grid-template-columns: 14rem repeat({{ total_days }}, minmax(0, 1fr))">
+          <div class="sticky left-0 z-10 flex h-full items-end border-r border-n30 bg-white px-3 pb-1 text-[11px] font-bold uppercase tracking-wide text-n200">
+            Epics
           </div>
         </div>
+
+        {# Epic rows — expandable to their issues #}
+        {% for bar in epic_bars %}
+          <section x-data="{ open: false }">
+            <div class="grid h-10 items-center border-t border-n30"
+                 style="grid-template-columns: 14rem repeat({{ total_days }}, minmax(0, 1fr))">
+              <div class="sticky left-0 z-10 flex h-full items-center gap-1 border-r border-n30 bg-white pl-2 pr-2">
+                <button type="button" @click="open = !open" class="text-n200 transition-transform"
+                        :class="open || '-rotate-90'" title="Show this epic's issues">
+                  {% include 'components/icons.html' with name='chevron-down' class='h-3.5 w-3.5' %}
+                </button>
+                {% include 'components/icons.html' with name='epic' class='h-3.5 w-3.5 shrink-0' %}
+                <a href="{% url 'projects:browse' bar.epic.key %}"
+                   class="min-w-0 flex-1 truncate text-sm text-n800 hover:text-blue-500 hover:underline">{{ bar.epic.summary }}</a>
+                <span class="badge">{{ bar.issues|length }}</span>
+              </div>
+              <div class="row-start-1 mx-px h-5 cursor-pointer truncate rounded-full px-2 text-[10px] font-medium leading-5 text-white"
+                   style="grid-column: {{ bar.start|add:1 }} / span {{ bar.span }}; background-color: {{ bar.epic.epic_color }}"
+                   @click="open = !open"
+                   title="{{ bar.epic.key }} {{ bar.epic.summary }} — click to expand">
+                {{ bar.epic.summary }}
+              </div>
+            </div>
+
+            <div x-cloak x-show="open">
+              {% for ib in bar.issues %}
+                <div class="grid h-8 items-center border-t border-n30"
+                     style="grid-template-columns: 14rem repeat({{ total_days }}, minmax(0, 1fr))">
+                  <div class="sticky left-0 z-10 flex h-full items-center gap-1.5 border-r border-n30 bg-white pl-9 pr-2">
+                    {% include 'components/icons.html' with name=ib.issue.issue_type class='h-3.5 w-3.5 shrink-0' %}
+                    <a href="{% url 'projects:browse' ib.issue.key %}"
+                       class="shrink-0 text-[11px] font-medium text-n200 hover:text-blue-500 hover:underline">{{ ib.issue.key }}</a>
+                    <span class="min-w-0 flex-1 truncate text-xs text-n500 {% if ib.issue.is_done %}line-through{% endif %}">{{ ib.issue.summary }}</span>
+                  </div>
+                  <div class="row-start-1 mx-px h-2.5 rounded-full
+                              {% if ib.issue.status.category == 'done' %}bg-green-400{% elif ib.issue.status.category == 'in_progress' %}bg-blue-400{% else %}bg-n40{% endif %}"
+                       style="grid-column: {{ ib.start|add:1 }} / span {{ ib.span }}"
+                       title="{{ ib.issue.key }} {{ ib.issue.summary }} — {{ ib.issue.status.name }} ({{ ib.issue.sprint.name }})"></div>
+                </div>
+              {% endfor %}
+            </div>
+          </section>
+        {% endfor %}
       </div>
     </div>
 
+    <p class="mt-3 flex items-center gap-4 text-[11px] text-n200">
+      <span class="flex items-center gap-1.5"><span class="h-2.5 w-5 rounded-full bg-n40"></span> To do</span>
+      <span class="flex items-center gap-1.5"><span class="h-2.5 w-5 rounded-full bg-blue-400"></span> In progress</span>
+      <span class="flex items-center gap-1.5"><span class="h-2.5 w-5 rounded-full bg-green-400"></span> Done</span>
+      {% if today_pct %}<span class="flex items-center gap-1.5"><span class="h-3 w-px bg-red-400"></span> Today</span>{% endif %}
+    </p>
+
     {% if unscheduled_epics %}
-      <p class="mt-4 text-xs text-n200">
+      <p class="mt-2 text-xs text-n200">
         Not on the timeline (no issues in dated sprints):
         {% for epic in unscheduled_epics %}
           <a href="{% url 'projects:browse' epic.key %}" class="text-blue-500 hover:underline">{{ epic.key }}</a>{% if not forloop.last %}, {% endif %}

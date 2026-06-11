@@ -24,6 +24,9 @@
           </span>
         {% endif %}
         {% if request.space_role == 'admin' %}
+          <a href="{% url 'projects:board_columns' space.key %}" class="btn-ghost" title="Add, rename, reorder or delete board columns">
+            {% include 'components/icons.html' with name='board' class='h-4 w-4' %} Columns
+          </a>
           <button type="button" @click="showComplete = true" class="btn-subtle">Complete sprint</button>
           {% include 'projects/partials/sprint_complete_modal.html' %}
         {% endif %}

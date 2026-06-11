@@ -1,0 +1,88 @@
+{% extends 'projects/space_base.html' %}
+
+{% block title %}Board columns — {{ space.name }}{% endblock %}
+
+{% block space_content %}
+<main class="mx-auto w-full max-w-2xl px-6 py-7">
+  <nav class="mb-1 text-xs text-n200">
+    <a href="{% url 'projects:board' space.key %}" class="hover:underline">Board</a>
+    <span class="mx-1">/</span> Columns
+  </nav>
+  <h1 class="mb-1 text-xl font-medium text-n800">Board columns</h1>
+  <p class="mb-6 text-sm text-n200">
+    Columns are this project's workflow lanes. Drag to reorder them; the
+    category controls the status colour and what “done” means for sprints.
+  </p>
+
+  <ul class="js-column-list card mb-4 divide-y divide-n30"
+      data-url="{% url 'projects:columns_reorder' space.key %}">
+    {% for status in statuses %}
+      <li class="flex items-center gap-3 px-4 py-3" data-id="{{ status.id }}">
+        <span class="js-grip cursor-grab text-n50">
+          {% include 'components/icons.html' with name='grip' class='h-4 w-4' %}
+        </span>
+        <form method="post" action="{% url 'projects:column_update' space.key status.id %}"
+              class="flex min-w-0 flex-1 items-center gap-2">
+          {% csrf_token %}
+          <input name="name" value="{{ status.name }}" maxlength="60" required
+                 class="field-select min-w-0 flex-1 font-medium">
+          <select name="category" class="field-select" onchange="this.form.requestSubmit()">
+            {% for value, label in categories %}
+              <option value="{{ value }}" {% if value == status.category %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn-subtle !py-1 text-xs">Save</button>
+        </form>
+        <span class="badge" title="Issues currently in this column">{{ status.issue_count }}</span>
+        <div x-data="{ confirm: false }" class="flex items-center gap-2">
+          <button type="button" class="btn-icon !h-7 !w-7 text-n100 hover:text-red-500"
+                  title="Delete column" @click="confirm = !confirm">
+            {% include 'components/icons.html' with name='trash' class='h-3.5 w-3.5' %}
+          </button>
+          <div x-cloak x-show="confirm" @click.self="confirm = false" class="backdrop">
+            <div class="card w-full max-w-sm p-6 !shadow-overlay">
+              <h2 class="mb-2 text-lg font-medium text-n800">Delete “{{ status.name }}”</h2>
+              <form method="post" action="{% url 'projects:column_delete' space.key status.id %}">
+                {% csrf_token %}
+                {% if status.issue_count %}
+                  <p class="mb-3 text-sm text-n200">
+                    Move its {{ status.issue_count }} issue{{ status.issue_count|pluralize }} to:
+                  </p>
+                  <select name="move_to" class="input mb-5" required>
+                    {% for other in statuses %}
+                      {% if other.id != status.id %}<option value="{{ other.id }}">{{ other.name }}</option>{% endif %}
+                    {% endfor %}
+                  </select>
+                {% else %}
+                  <p class="mb-5 text-sm text-n200">This column is empty — it can be removed safely.</p>
+                {% endif %}
+                <div class="flex justify-end gap-2">
+                  <button type="button" @click="confirm = false" class="btn-subtle">Cancel</button>
+                  <button type="submit" class="btn-danger">Delete column</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+
+  <form method="post" action="{% url 'projects:column_add' space.key %}"
+        class="card flex items-end gap-2 p-4">
+    {% csrf_token %}
+    <div class="min-w-0 flex-1">
+      <label class="label" for="new-column-name">Add a column</label>
+      <input id="new-column-name" name="name" maxlength="60" required class="input"
+             placeholder="e.g. Blocked, QA, Ready for release">
+    </div>
+    <div>
+      <label class="label" for="new-column-category">Category</label>
+      <select id="new-column-category" name="category" class="input">
+        {% for value, label in categories %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn-primary">Add column</button>
+  </form>
+</main>
+{% endblock %}

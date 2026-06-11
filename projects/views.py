@@ -124,7 +124,11 @@ def issue_create_inline(request, space):
         rank=_next_rank(space.issues.filter(sprint__isnull=True, epic=epic)),
     )
     record_activity(issue, request.user, 'created')
-    return render(request, 'projects/partials/backlog_row.html', {'issue': issue, 'space': space})
+    return render(request, 'projects/partials/backlog_row.html', {
+        'issue': issue,
+        'space': space,
+        'has_active_sprint': space.sprints.filter(state=Sprint.STATE_ACTIVE).exists(),
+    })
 
 
 @require_POST
@@ -304,6 +308,117 @@ def sprint_complete(request, space, sprint_id):
         f'Sprint “{sprint.name}” completed — {done_count} done, {len(incomplete)} {destination}.',
     )
     return redirect('projects:backlog', key=space.key)
+
+
+@require_POST
+@space_required(role=SpaceMembership.ROLE_MEMBER, space_type=Space.TYPE_SOFTWARE)
+def sprint_quick_add(request, space):
+    """One-click 'pull into the active sprint' from a backlog row."""
+    sprint = space.sprints.filter(state=Sprint.STATE_ACTIVE).first()
+    if sprint is None:
+        return HttpResponseBadRequest('No active sprint.')
+    issue = get_object_or_404(
+        Issue, pk=request.POST.get('issue'), space=space, sprint__isnull=True,
+    )
+    issue.sprint = sprint
+    issue.rank = _next_rank(sprint.issues.all())
+    issue.save(update_fields=['sprint', 'rank', 'updated_at'])
+    record_activity(issue, request.user, 'sprint', 'Backlog', sprint.name)
+    # Both the backlog groups and the sprint panel change — reload the page.
+    response = HttpResponse(status=204)
+    response['HX-Refresh'] = 'true'
+    return response
+
+
+# ── Board columns (lanes) ────────────────────────────────────────────────────
+
+@space_required(role=SpaceMembership.ROLE_ADMIN, space_type=Space.TYPE_SOFTWARE)
+def board_columns(request, space):
+    statuses = space.statuses.annotate(issue_count=Count('issues'))
+    return render(request, 'projects/board_columns.html', {
+        'space': space,
+        'statuses': statuses,
+        'categories': Status.CATEGORY_CHOICES,
+    })
+
+
+@require_POST
+@space_required(role=SpaceMembership.ROLE_ADMIN, space_type=Space.TYPE_SOFTWARE)
+def column_add(request, space):
+    name = request.POST.get('name', '').strip()
+    category = request.POST.get('category', Status.CATEGORY_TODO)
+    if category not in dict(Status.CATEGORY_CHOICES):
+        category = Status.CATEGORY_TODO
+    if not name:
+        messages.error(request, 'Columns need a name.')
+    elif space.statuses.filter(name__iexact=name).exists():
+        messages.error(request, f'A “{name}” column already exists.')
+    else:
+        order = (space.statuses.aggregate(m=Max('order'))['m'] or 0) + 1
+        Status.objects.create(space=space, name=name, category=category, order=order)
+        messages.success(request, f'Column “{name}” added.')
+    return redirect('projects:board_columns', key=space.key)
+
+
+@require_POST
+@space_required(role=SpaceMembership.ROLE_ADMIN, space_type=Space.TYPE_SOFTWARE)
+def column_update(request, space, status_id):
+    status = get_object_or_404(Status, pk=status_id, space=space)
+    name = request.POST.get('name', '').strip()
+    category = request.POST.get('category', status.category)
+    if not name:
+        messages.error(request, 'Columns need a name.')
+    elif space.statuses.exclude(pk=status.pk).filter(name__iexact=name).exists():
+        messages.error(request, f'A “{name}” column already exists.')
+    else:
+        status.name = name
+        if category in dict(Status.CATEGORY_CHOICES):
+            status.category = category
+        status.save(update_fields=['name', 'category'])
+        messages.success(request, 'Column updated.')
+    return redirect('projects:board_columns', key=space.key)
+
+
+@require_POST
+@space_required(role=SpaceMembership.ROLE_ADMIN, space_type=Space.TYPE_SOFTWARE)
+def column_delete(request, space, status_id):
+    status = get_object_or_404(Status, pk=status_id, space=space)
+    if space.statuses.count() <= 1:
+        messages.error(request, 'A board needs at least one column.')
+        return redirect('projects:board_columns', key=space.key)
+
+    target = None
+    if status.issues.exists():
+        target = space.statuses.exclude(pk=status.pk).filter(
+            pk=request.POST.get('move_to'),
+        ).first()
+        if target is None:
+            messages.error(request, 'Choose a column to move its issues to first.')
+            return redirect('projects:board_columns', key=space.key)
+        moved = status.issues.update(status=target)
+        messages.success(
+            request, f'“{status.name}” deleted — {moved} issue(s) moved to “{target.name}”.',
+        )
+    else:
+        messages.success(request, f'“{status.name}” deleted.')
+    status.delete()
+    return redirect('projects:board_columns', key=space.key)
+
+
+@require_POST
+@space_required(role=SpaceMembership.ROLE_ADMIN, space_type=Space.TYPE_SOFTWARE)
+def columns_reorder(request, space):
+    ids = [i for i in request.POST.getlist('ids') if i.isdigit()]
+    statuses = {s.pk: s for s in space.statuses.filter(pk__in=ids)}
+    if len(statuses) != len(ids):
+        return HttpResponseBadRequest('Stale column list — reload the page.')
+    to_update = []
+    for index, pk in enumerate(int(i) for i in ids):
+        if statuses[pk].order != index:
+            statuses[pk].order = index
+            to_update.append(statuses[pk])
+    Status.objects.bulk_update(to_update, ['order'])
+    return HttpResponse(status=204)
 
 
 # ── Board ────────────────────────────────────────────────────────────────────
@@ -617,12 +732,25 @@ def timeline(request, space):
         } for s in sprints]
 
         # An epic spans from the start of the earliest sprint containing its
-        # issues to the end of the latest one.
+        # issues to the end of the latest one. Each of those issues also gets
+        # its own bar (spanning its sprint) for the expanded view.
         dated = {s.pk: s for s in sprints}
         epic_bars = []
         epic_sprints = {}
-        for issue in space.issues.filter(epic__isnull=False, sprint__in=sprints).select_related('epic', 'sprint'):
-            epic_sprints.setdefault(issue.epic, []).append(dated[issue.sprint_id])
+        epic_issue_bars = {}
+        issues_in_sprints = (
+            space.issues.filter(epic__isnull=False, sprint__in=sprints)
+            .exclude(issue_type=Issue.TYPE_SUBTASK)
+            .select_related('epic', 'sprint', 'status', 'assignee')
+        )
+        for issue in issues_in_sprints:
+            sprint = dated[issue.sprint_id]
+            epic_sprints.setdefault(issue.epic, []).append(sprint)
+            epic_issue_bars.setdefault(issue.epic, []).append({
+                'issue': issue,
+                'start': col(sprint.start_date),
+                'span': (sprint.end_date - sprint.start_date).days + 1,
+            })
         for epic in space.issues.filter(issue_type=Issue.TYPE_EPIC):
             in_sprints = epic_sprints.get(epic)
             if not in_sprints:
@@ -633,6 +761,7 @@ def timeline(request, space):
                 'epic': epic,
                 'start': col(start),
                 'span': (end - start).days + 1,
+                'issues': epic_issue_bars.get(epic, []),
             })
 
         today = timezone.localdate()

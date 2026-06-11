@@ -221,6 +221,25 @@ function initBoardLists(root) {
   });
 }
 
+// Board column management: drag to reorder lanes.
+function initColumnList(root) {
+  if (!window.Sortable) return;
+  root.querySelectorAll('.js-column-list').forEach((el) => {
+    if (el._sortable) return;
+    el._sortable = new Sortable(el, {
+      handle: '.js-grip',
+      animation: 150,
+      ghostClass: 'opacity-40',
+      onEnd(evt) {
+        const list = evt.to;
+        const params = new URLSearchParams();
+        list.querySelectorAll(':scope > li[data-id]').forEach((li) => params.append('ids', li.dataset.id));
+        postForm(list.dataset.url, params);
+      },
+    });
+  });
+}
+
 // Wiki sidebar tree: drag to reorder among siblings (re-parenting uses Move).
 function initTreeLists(root) {
   if (!window.Sortable) return;
@@ -249,6 +268,7 @@ if (window.htmx) {
     initSprintLists(root);
     initBoardLists(root);
     initTreeLists(root);
+    initColumnList(root);
   });
 }
 
