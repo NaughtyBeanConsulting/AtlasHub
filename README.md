@@ -1,6 +1,6 @@
 # AtlasHub
 
-A self-hosted **Jira + Confluence clone** in one Django monolith: Scrum project
+A self-hosted **Atlas + Hub clone** in one Django monolith: Scrum project
 spaces (backlog → sprints → board → timeline) and wiki spaces (nested pages,
 mermaid, native draw.io diagrams) sharing auth, navigation and an
 Atlassian-style design language — plus a **WhatsApp Web sidecar** for
@@ -18,13 +18,13 @@ notifications and password resets.
 - **Auth**: email-keyed custom user (no username anywhere), signup/login,
   profile with E.164-normalised phone, password reset **over WhatsApp** with
   email fallback, per-user notification preferences.
-- **Jira component**: spaces with short keys (CLIC-1, CLIC-2…), epics/stories/
+- **Atlas component**: spaces with short keys (CLIC-1, CLIC-2…), epics/stories/
   tasks/bugs/sub-tasks, acceptance-criteria checklists, backlog grouped by
   epic with drag-to-reorder and drag-into-sprint, sprint start/complete
   (rollover to backlog or next sprint), drag-and-drop board, inline-editable
   issue detail (side panel + `/browse/<KEY>`), comments with @mentions,
   activity history, CSS-grid timeline of epics × sprints.
-- **Confluence component**: arbitrarily nested page tree, markdown editor with
+- **Hub component**: arbitrarily nested page tree, markdown editor with
   toolbar + server-rendered preview, ```` ```mermaid ```` blocks, **draw.io**
   embedded editing (XML stored, SVG rendered inline), version history with
   restore, move with cycle guard, page comments.
@@ -98,8 +98,8 @@ optional `EMAIL_*` (reset fallback), `WHATSAPP_WORKER_URL/TOKEN, COUNTRY_CODE`
 app/        settings, root urls, wsgi/asgi
 accounts/   custom User, auth flows, notification preferences
 core/       Space + membership/roles, markdown pipeline, search, seed_demo
-projects/   Jira: issues, sprints, board, backlog, timeline, activity
-wiki/       Confluence: page tree, versions, draw.io diagrams, comments
+projects/   Atlas: issues, sprints, board, backlog, timeline, activity
+wiki/       Hub: page tree, versions, draw.io diagrams, comments
 whatsapp/   queue model, worker HTTP client, scheduler, ops UI
 whatsapp-node-worker/   the only Node component (whatsapp-web.js sidecar)
 ```

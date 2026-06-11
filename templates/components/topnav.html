@@ -19,7 +19,7 @@
     <div class="relative flex h-full items-stretch" x-data="dropdown">
       <button @click="toggle" @click.outside="close"
               class="nav-tab {% if request.resolver_match.namespace == 'projects' %}nav-tab-active{% endif %}">
-        Jira
+        Atlas
         {% include 'components/icons.html' with name='chevron-down' class='h-3.5 w-3.5' %}
       </button>
       <div x-cloak x-show="open" x-transition.origin.top.left class="menu absolute left-0 top-12">
@@ -44,7 +44,7 @@
     <div class="relative flex h-full items-stretch" x-data="dropdown">
       <button @click="toggle" @click.outside="close"
               class="nav-tab {% if request.resolver_match.namespace == 'wiki' %}nav-tab-active{% endif %}">
-        Confluence
+        Hub
         {% include 'components/icons.html' with name='chevron-down' class='h-3.5 w-3.5' %}
       </button>
       <div x-cloak x-show="open" x-transition.origin.top.left class="menu absolute left-0 top-12">
@@ -103,6 +103,22 @@
         <div class="my-1 border-t border-n30"></div>
         <a class="menu-item" href="{% url 'accounts:profile' %}">Profile and preferences</a>
         <a class="menu-item" href="{% url 'accounts:password_change' %}">Change password</a>
+        <div class="my-1 border-t border-n30"></div>
+        <p class="menu-heading">Theme</p>
+        <div x-data="themePicker">
+          <button type="button" class="menu-item" @click="set('light')">
+            <span class="w-4 text-blue-500" x-show="mode === 'light'">{% include 'components/icons.html' with name='check' class='h-3.5 w-3.5' %}</span>
+            <span class="w-4" x-show="mode !== 'light'"></span> Light
+          </button>
+          <button type="button" class="menu-item" @click="set('dark')">
+            <span class="w-4 text-blue-500" x-show="mode === 'dark'">{% include 'components/icons.html' with name='check' class='h-3.5 w-3.5' %}</span>
+            <span class="w-4" x-show="mode !== 'dark'"></span> Dark
+          </button>
+          <button type="button" class="menu-item" @click="set('system')">
+            <span class="w-4 text-blue-500" x-show="mode === 'system'">{% include 'components/icons.html' with name='check' class='h-3.5 w-3.5' %}</span>
+            <span class="w-4" x-show="mode !== 'system'"></span> Match system
+          </button>
+        </div>
         {% if user.is_staff %}
           <div class="my-1 border-t border-n30"></div>
           <a class="menu-item" href="/admin/">Administration</a>

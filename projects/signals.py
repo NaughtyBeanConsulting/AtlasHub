@@ -15,7 +15,7 @@ DEFAULT_STATUSES = [
 
 @receiver(post_save, sender=Space)
 def seed_statuses(sender, instance, created, **kwargs):
-    """New software spaces get the default Jira-style workflow columns."""
+    """New software spaces get the default Atlas-style workflow columns."""
     if created and instance.space_type == Space.TYPE_SOFTWARE:
         Status.objects.bulk_create([
             Status(space=instance, name=name, category=category, order=i)

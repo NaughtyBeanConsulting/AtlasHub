@@ -1,5 +1,5 @@
 def nav_spaces(request):
-    """Spaces for the topnav product menus (Jira / Confluence)."""
+    """Spaces for the topnav product menus (Atlas / Hub)."""
     if not getattr(request, 'user', None) or not request.user.is_authenticated:
         return {}
     spaces = list(request.user.spaces.all()[:30])

@@ -3,7 +3,33 @@
    on alpine:init, before Alpine scans the DOM). */
 'use strict';
 
+// ── Theme (light / dark / system) ────────────────────────────────────────────
+// base.html applies the saved theme pre-paint; this keeps it in sync when the
+// user switches or the OS preference changes.
+function applyTheme() {
+  const t = localStorage.getItem('ah-theme') || 'system';
+  const dark = t === 'dark'
+    || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.classList.toggle('dark', dark);
+}
+
+window.setTheme = function (mode) {
+  localStorage.setItem('ah-theme', mode);
+  applyTheme();
+};
+
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+
 document.addEventListener('alpine:init', () => {
+  // Theme picker state (profile menu).
+  Alpine.data('themePicker', () => ({
+    mode: localStorage.getItem('ah-theme') || 'system',
+    set(mode) {
+      this.mode = mode;
+      window.setTheme(mode);
+    },
+  }));
+
   // Generic dropdown / popover.
   Alpine.data('dropdown', () => ({
     open: false,

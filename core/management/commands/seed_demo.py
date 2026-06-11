@@ -1,4 +1,4 @@
-"""Seed a realistic demo: a Jira project mid-sprint and a wiki space with
+"""Seed a realistic demo: an Atlas project mid-sprint and a wiki space with
 mermaid + draw.io content, so every view renders with data.
 
     python manage.py seed_demo            # fails if demo spaces exist
@@ -259,8 +259,8 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(
             'Demo data created.\n'
-            f'  Jira:        /projects/CLIC/  (board mid-sprint, backlog, timeline)\n'
-            f'  Confluence:  /wiki/ENG/\n'
+            f'  Atlas:        /projects/CLIC/  (board mid-sprint, backlog, timeline)\n'
+            f'  Hub:  /wiki/ENG/\n'
             f'  Log in as    demo@atlashub.local / {DEMO_PASSWORD}  (staff)\n'
             f'               thandi@atlashub.local / {DEMO_PASSWORD}\n'
             f'               pieter@atlashub.local / {DEMO_PASSWORD}'

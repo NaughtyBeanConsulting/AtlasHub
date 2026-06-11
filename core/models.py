@@ -15,15 +15,15 @@ key_validator = RegexValidator(
 
 
 class Space(models.Model):
-    """A container with a short KEY and members — a Jira project space
-    (software) or a Confluence wiki space (wiki). One model on purpose:
+    """A container with a short KEY and members — an Atlas project space
+    (software) or a Hub wiki space (wiki). One model on purpose:
     membership, roles, the picker and the create flow are shared."""
 
     TYPE_SOFTWARE = 'software'
     TYPE_WIKI = 'wiki'
     TYPE_CHOICES = [
-        (TYPE_SOFTWARE, 'Jira project'),
-        (TYPE_WIKI, 'Confluence space'),
+        (TYPE_SOFTWARE, 'Atlas project'),
+        (TYPE_WIKI, 'Hub space'),
     ]
 
     name = models.CharField(max_length=120)

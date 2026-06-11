@@ -37,7 +37,7 @@
 
       {% if request.space_role == 'admin' and sg.sprint.state == 'planned' %}
         <div x-cloak x-show="showStart" @click.self="showStart = false"
-             class="fixed inset-0 z-50 flex items-center justify-center bg-n900/50 p-4">
+             class="backdrop">
           <div class="card w-full max-w-md p-6 !shadow-overlay">
             <h2 class="mb-4 text-lg font-medium text-n800">Start sprint</h2>
             <form method="post" action="{% url 'projects:sprint_start' space.key sg.sprint.id %}">

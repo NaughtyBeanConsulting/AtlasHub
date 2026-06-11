@@ -2,6 +2,78 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Theme tokens ─────────────────────────────────────────────────────────────
+   RGB triplets consumed by tailwind.config.js via rgb(var(--x) / <alpha>).
+   :root = Atlassian light palette, .dark = the ADS dark equivalents. Because
+   every utility class resolves through these, the whole UI re-themes from the
+   single .dark class on <html>. */
+:root {
+  --blue-50: 222 235 255; --blue-100: 179 212 255; --blue-200: 76 154 255;
+  --blue-300: 38 132 255; --blue-400: 0 101 255; --blue-500: 0 82 204;
+  --blue-600: 7 71 166; --blue-700: 5 48 104;
+
+  --n0: 255 255 255; --n10: 250 251 252; --n20: 244 245 247;
+  --n30: 235 236 240; --n40: 223 225 230; --n50: 193 199 208;
+  --n60: 179 186 197; --n70: 165 173 186; --n80: 151 160 175;
+  --n90: 137 147 164; --n100: 122 134 154; --n200: 107 119 140;
+  --n300: 94 108 132; --n400: 80 95 121; --n500: 66 82 110;
+  --n600: 52 69 99; --n700: 37 56 88; --n800: 23 43 77; --n900: 9 30 66;
+
+  --green-50: 227 252 239; --green-300: 87 217 163; --green-400: 54 179 126;
+  --green-500: 0 135 90; --green-600: 0 102 68;
+  --red-50: 255 235 230; --red-300: 255 116 82; --red-400: 255 86 48;
+  --red-500: 222 53 11; --red-600: 191 38 0;
+  --yellow-50: 255 250 230; --yellow-300: 255 196 0; --yellow-400: 255 171 0;
+  --yellow-500: 255 139 0;
+  --purple-50: 234 230 255; --purple-300: 153 141 217; --purple-400: 135 119 217;
+  --purple-500: 101 84 192; --purple-600: 82 67 170;
+  --teal-50: 230 252 255; --teal-300: 121 226 242; --teal-400: 0 199 230;
+  --teal-500: 0 184 217; --teal-600: 0 163 191;
+
+  --sh-card: 0 1px 2px rgba(9, 30, 66, 0.25);
+  --sh-raised: 0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+  --sh-overlay: 0 8px 16px -4px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31);
+}
+
+.dark {
+  --blue-50: 28 43 65; --blue-100: 9 50 108; --blue-200: 56 139 255;
+  --blue-300: 56 139 255; --blue-400: 87 157 255; --blue-500: 29 122 252;
+  --blue-600: 133 184 255; --blue-700: 204 224 255;
+
+  --n0: 29 33 37; --n10: 25 28 32; --n20: 34 39 43;
+  --n30: 44 50 56; --n40: 56 63 70; --n50: 69 79 89;
+  --n60: 89 102 115; --n70: 96 110 124; --n80: 108 121 135;
+  --n90: 122 136 150; --n100: 140 155 171; --n200: 159 173 188;
+  --n300: 182 194 207; --n400: 199 209 219; --n500: 199 209 219;
+  --n600: 222 228 234; --n700: 222 228 234; --n800: 222 228 234;
+  --n900: 247 248 249;
+
+  --green-50: 22 75 53; --green-300: 75 206 151; --green-400: 75 206 151;
+  --green-500: 42 187 127; --green-600: 126 226 184;
+  --red-50: 66 34 31; --red-300: 255 156 143; --red-400: 248 116 98;
+  --red-500: 239 92 72; --red-600: 255 156 143;
+  --yellow-50: 63 49 2; --yellow-300: 226 178 3; --yellow-400: 245 205 71;
+  --yellow-500: 226 178 3;
+  --purple-50: 43 39 63; --purple-300: 184 172 246; --purple-400: 159 143 239;
+  --purple-500: 143 126 231; --purple-600: 184 172 246;
+  --teal-50: 30 49 55; --teal-300: 96 198 210; --teal-400: 55 180 195;
+  --teal-500: 55 180 195; --teal-600: 96 198 210;
+
+  --sh-card: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --sh-raised: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 1px 1px rgba(0, 0, 0, 0.5);
+  --sh-overlay: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 8px 16px -4px rgba(0, 0, 0, 0.6);
+}
+
+/* `white` stays a literal token (text on coloured chips must remain white),
+   so dark mode retargets the white SURFACES explicitly: the page base goes
+   darkest, raised elements (cards, topnav, menus) one step lighter. */
+.dark .bg-white { background-color: rgb(34 39 43); }
+.dark body.bg-white { background-color: rgb(29 33 37); }
+.dark .\!bg-white { background-color: rgb(34 39 43) !important; }
+.dark .input:focus,
+.dark .field-select:focus { background-color: rgb(34 39 43); }
+.dark .hover\:bg-white:hover { background-color: rgb(34 39 43); }
+
 [x-cloak] {
   display: none !important;
 }
@@ -9,7 +81,7 @@
 /* Empty drag targets keep a visible drop zone with a hint. */
 .js-backlog-list:empty,
 .js-sprint-list:empty {
-  border: 1px dashed #c1c7d0;
+  border: 1px dashed rgb(var(--n50));
   border-radius: 3px;
   min-height: 2.25rem;
 }
@@ -18,7 +90,7 @@
   display: block;
   padding: 0.5rem;
   font-size: 0.75rem;
-  color: #7a869a;
+  color: rgb(var(--n100));
 }
 .js-backlog-list:empty::after {
   content: 'No issues — drag one here or create below';
@@ -28,107 +100,6 @@
 }
 .js-board-list {
   min-height: 3rem;
-}
-
-/* Rendered markdown (issues, comments, wiki pages). */
-.prose-ah {
-  font-size: 0.875rem;
-  line-height: 1.6;
-  color: #172b4d;
-}
-.prose-ah > * + * {
-  margin-top: 0.65em;
-}
-.prose-ah h1 { font-size: 1.45em; font-weight: 600; margin-top: 1.1em; }
-.prose-ah h2 { font-size: 1.25em; font-weight: 600; margin-top: 1.1em; }
-.prose-ah h3 { font-size: 1.1em; font-weight: 600; margin-top: 1em; }
-.prose-ah h4, .prose-ah h5, .prose-ah h6 { font-weight: 600; }
-.prose-ah ul { list-style: disc; padding-left: 1.4em; }
-.prose-ah ol { list-style: decimal; padding-left: 1.4em; }
-.prose-ah li + li { margin-top: 0.2em; }
-.prose-ah a { color: #0052cc; }
-.prose-ah a:hover { text-decoration: underline; }
-.prose-ah code {
-  background: #f4f5f7;
-  border-radius: 3px;
-  padding: 0.1em 0.35em;
-  font-size: 0.85em;
-}
-.prose-ah pre {
-  background: #f4f5f7;
-  border-radius: 3px;
-  padding: 0.75rem;
-  overflow-x: auto;
-}
-.prose-ah pre code { background: none; padding: 0; font-size: 0.8125rem; }
-.prose-ah pre.mermaid { background: #ffffff; text-align: center; }
-.prose-ah blockquote {
-  border-left: 3px solid #dfe1e6;
-  padding-left: 0.9em;
-  color: #5e6c84;
-}
-.prose-ah table { border-collapse: collapse; }
-.prose-ah th, .prose-ah td {
-  border: 1px solid #dfe1e6;
-  padding: 0.3em 0.7em;
-  text-align: left;
-}
-.prose-ah th { background: #f4f5f7; font-weight: 600; }
-.prose-ah hr { border-color: #dfe1e6; }
-.prose-ah img { max-width: 100%; border-radius: 3px; }
-
-/* draw.io embeds (markup produced by wiki.services, not scanned by Tailwind). */
-.drawio-embed {
-  display: block;
-  position: relative;
-  margin: 0.75rem 0;
-  border: 1px solid #ebecf0;
-  border-radius: 3px;
-  padding: 0.75rem;
-  text-align: center;
-}
-.drawio-embed img {
-  display: block;
-  margin: 0 auto;
-  max-width: 100%;
-}
-.drawio-embed .drawio-edit {
-  position: absolute;
-  right: 0.5rem;
-  top: 0.5rem;
-  background: #f4f5f7;
-  border-radius: 3px;
-  padding: 0.15rem 0.6rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: #42526e;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-.drawio-embed:hover .drawio-edit {
-  opacity: 1;
-}
-.drawio-embed .drawio-edit:hover {
-  background: #deebff;
-  color: #0747a6;
-}
-.drawio-placeholder,
-.drawio-missing {
-  display: block;
-  font-size: 0.8125rem;
-  color: #7a869a;
-  font-style: italic;
-  padding: 1.5rem 0;
-}
-
-/* @mention chip (also used outside .prose-ah, e.g. in autocomplete). */
-.mention {
-  background: #deebff;
-  color: #0747a6;
-  border-radius: 10px;
-  padding: 0 0.4em;
-  font-weight: 500;
-  white-space: nowrap;
 }
 
 @layer components {
@@ -176,6 +147,13 @@
   .menu-heading {
     @apply px-4 pb-1 pt-2.5 text-[11px] font-bold uppercase tracking-wide text-n200;
   }
+  .backdrop {
+    @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+    background-color: rgba(9, 30, 66, 0.54);
+  }
+  .dark .backdrop {
+    background-color: rgba(0, 0, 0, 0.65);
+  }
 
   /* Top navigation */
   .nav-tab {
@@ -191,6 +169,11 @@
   }
   .side-item-active {
     @apply bg-blue-50 font-medium text-blue-600 hover:bg-blue-50;
+  }
+
+  /* Markdown editor toolbar */
+  .md-btn {
+    @apply inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded-[3px] px-1.5 text-sm text-n400 transition-colors hover:bg-n30 hover:text-n800;
   }
 
   /* Issue detail */
@@ -213,11 +196,6 @@
     @apply border-blue-500 text-blue-500;
   }
 
-  /* Markdown editor toolbar */
-  .md-btn {
-    @apply inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded-[3px] px-1.5 text-sm text-n400 transition-colors hover:bg-n30 hover:text-n800;
-  }
-
   /* Badges & pills */
   .badge {
     @apply inline-flex items-center rounded-[3px] bg-n20 px-1.5 py-0.5 text-[11px] font-bold text-n500;
@@ -234,4 +212,107 @@
   .lozenge-done {
     @apply bg-green-50 text-green-600;
   }
+}
+
+/* Rendered markdown (issues, comments, wiki pages). */
+.prose-ah {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: rgb(var(--n800));
+}
+.prose-ah > * + * {
+  margin-top: 0.65em;
+}
+.prose-ah h1 { font-size: 1.45em; font-weight: 600; margin-top: 1.1em; }
+.prose-ah h2 { font-size: 1.25em; font-weight: 600; margin-top: 1.1em; }
+.prose-ah h3 { font-size: 1.1em; font-weight: 600; margin-top: 1em; }
+.prose-ah h4, .prose-ah h5, .prose-ah h6 { font-weight: 600; }
+.prose-ah ul { list-style: disc; padding-left: 1.4em; }
+.prose-ah ol { list-style: decimal; padding-left: 1.4em; }
+.prose-ah li + li { margin-top: 0.2em; }
+.prose-ah a { color: rgb(var(--blue-500)); }
+.prose-ah a:hover { text-decoration: underline; }
+.prose-ah code {
+  background: rgb(var(--n20));
+  border-radius: 3px;
+  padding: 0.1em 0.35em;
+  font-size: 0.85em;
+}
+.prose-ah pre {
+  background: rgb(var(--n20));
+  border-radius: 3px;
+  padding: 0.75rem;
+  overflow-x: auto;
+}
+.prose-ah pre code { background: none; padding: 0; font-size: 0.8125rem; }
+/* Diagrams stay light islands in both themes — they're drawn for light. */
+.prose-ah pre.mermaid { background: #ffffff; text-align: center; }
+.prose-ah blockquote {
+  border-left: 3px solid rgb(var(--n40));
+  padding-left: 0.9em;
+  color: rgb(var(--n300));
+}
+.prose-ah table { border-collapse: collapse; }
+.prose-ah th, .prose-ah td {
+  border: 1px solid rgb(var(--n40));
+  padding: 0.3em 0.7em;
+  text-align: left;
+}
+.prose-ah th { background: rgb(var(--n20)); font-weight: 600; }
+.prose-ah hr { border-color: rgb(var(--n40)); }
+.prose-ah img { max-width: 100%; border-radius: 3px; }
+
+/* draw.io embeds (markup produced by wiki.services, not scanned by Tailwind). */
+.drawio-embed {
+  display: block;
+  position: relative;
+  margin: 0.75rem 0;
+  border: 1px solid rgb(var(--n30));
+  border-radius: 3px;
+  padding: 0.75rem;
+  text-align: center;
+  background: #ffffff;
+}
+.drawio-embed img {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+}
+.drawio-embed .drawio-edit {
+  position: absolute;
+  right: 0.5rem;
+  top: 0.5rem;
+  background: rgb(var(--n20));
+  border-radius: 3px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgb(var(--n500));
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.drawio-embed:hover .drawio-edit {
+  opacity: 1;
+}
+.drawio-embed .drawio-edit:hover {
+  background: rgb(var(--blue-50));
+  color: rgb(var(--blue-600));
+}
+.drawio-placeholder,
+.drawio-missing {
+  display: block;
+  font-size: 0.8125rem;
+  color: #7a869a;
+  font-style: italic;
+  padding: 1.5rem 0;
+}
+
+/* @mention chip (also used outside .prose-ah, e.g. in autocomplete). */
+.mention {
+  background: rgb(var(--blue-50));
+  color: rgb(var(--blue-600));
+  border-radius: 10px;
+  padding: 0 0.4em;
+  font-weight: 500;
+  white-space: nowrap;
 }

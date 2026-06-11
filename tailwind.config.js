@@ -3,11 +3,16 @@
 //   ./build_tailwind.sh
 // Output: static/css/tailwind.css (committed, served locally — no CDN).
 //
-// The palette mirrors the Atlassian Design System tokens:
-//   blue  = ADS B50–B500 (brand), n = ADS neutrals N0–N900,
-//   green/red/yellow/purple/teal = ADS accents used by Jira statuses,
-//   priorities and issue types. Use these tokens — no inline hex in templates.
+// Every colour token resolves through a CSS variable (RGB triplets defined in
+// static/src/tailwind.css for :root and .dark), so the whole app re-themes
+// for dark mode without touching a single template class. The palette mirrors
+// the Atlassian Design System: blue = brand, n* = neutrals N0–N900,
+// green/red/yellow/purple/teal = the accents used by statuses, priorities and
+// issue types. Use these tokens — no inline hex in templates.
+const v = (name) => `rgb(var(--${name}) / <alpha-value>)`;
+
 module.exports = {
+  darkMode: 'class',
   content: [
     './templates/**/*.html',
     './static/js/**/*.js',
@@ -16,27 +21,22 @@ module.exports = {
     extend: {
       colors: {
         blue: {
-          50: '#DEEBFF',   // B50
-          100: '#B3D4FF',  // B75
-          200: '#4C9AFF',  // B100
-          300: '#2684FF',  // B200
-          400: '#0065FF',  // B300
-          500: '#0052CC',  // B400 — primary brand
-          600: '#0747A6',  // B500
-          700: '#053068',
+          50: v('blue-50'), 100: v('blue-100'), 200: v('blue-200'),
+          300: v('blue-300'), 400: v('blue-400'), 500: v('blue-500'),
+          600: v('blue-600'), 700: v('blue-700'),
         },
         // Flat keys on purpose: nested scales would generate `bg-n-20`;
         // these give `bg-n20`, `text-n800`, … matching ADS neutral names.
-        n0: '#FFFFFF', n10: '#FAFBFC', n20: '#F4F5F7', n30: '#EBECF0',
-        n40: '#DFE1E6', n50: '#C1C7D0', n60: '#B3BAC5', n70: '#A5ADBA',
-        n80: '#97A0AF', n90: '#8993A4', n100: '#7A869A', n200: '#6B778C',
-        n300: '#5E6C84', n400: '#505F79', n500: '#42526E', n600: '#344563',
-        n700: '#253858', n800: '#172B4D', n900: '#091E42',
-        green: { 50: '#E3FCEF', 300: '#57D9A3', 400: '#36B37E', 500: '#00875A', 600: '#006644' },
-        red: { 50: '#FFEBE6', 300: '#FF7452', 400: '#FF5630', 500: '#DE350B', 600: '#BF2600' },
-        yellow: { 50: '#FFFAE6', 300: '#FFC400', 400: '#FFAB00', 500: '#FF8B00' },
-        purple: { 50: '#EAE6FF', 300: '#998DD9', 400: '#8777D9', 500: '#6554C0', 600: '#5243AA' },
-        teal: { 50: '#E6FCFF', 300: '#79E2F2', 400: '#00C7E6', 500: '#00B8D9', 600: '#00A3BF' },
+        n0: v('n0'), n10: v('n10'), n20: v('n20'), n30: v('n30'),
+        n40: v('n40'), n50: v('n50'), n60: v('n60'), n70: v('n70'),
+        n80: v('n80'), n90: v('n90'), n100: v('n100'), n200: v('n200'),
+        n300: v('n300'), n400: v('n400'), n500: v('n500'), n600: v('n600'),
+        n700: v('n700'), n800: v('n800'), n900: v('n900'),
+        green: { 50: v('green-50'), 300: v('green-300'), 400: v('green-400'), 500: v('green-500'), 600: v('green-600') },
+        red: { 50: v('red-50'), 300: v('red-300'), 400: v('red-400'), 500: v('red-500'), 600: v('red-600') },
+        yellow: { 50: v('yellow-50'), 300: v('yellow-300'), 400: v('yellow-400'), 500: v('yellow-500') },
+        purple: { 50: v('purple-50'), 300: v('purple-300'), 400: v('purple-400'), 500: v('purple-500'), 600: v('purple-600') },
+        teal: { 50: v('teal-50'), 300: v('teal-300'), 400: v('teal-400'), 500: v('teal-500'), 600: v('teal-600') },
       },
       fontFamily: {
         sans: [
@@ -45,9 +45,9 @@ module.exports = {
         ],
       },
       boxShadow: {
-        card: '0 1px 2px rgba(9, 30, 66, 0.25)',
-        raised: '0 1px 1px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31)',
-        overlay: '0 8px 16px -4px rgba(9, 30, 66, 0.25), 0 0 1px rgba(9, 30, 66, 0.31)',
+        card: 'var(--sh-card)',
+        raised: 'var(--sh-raised)',
+        overlay: 'var(--sh-overlay)',
       },
       maxWidth: {
         '8xl': '90rem',

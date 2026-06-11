@@ -1,6 +1,6 @@
 {% comment %}Expects: sprint (active), planned_sprints, space. Alpine scope provides showComplete.{% endcomment %}
 <div x-cloak x-show="showComplete" @click.self="showComplete = false"
-     class="fixed inset-0 z-50 flex items-center justify-center bg-n900/50 p-4">
+     class="backdrop">
   <div class="card w-full max-w-md p-6 !shadow-overlay">
     <h2 class="mb-1 text-lg font-medium text-n800">Complete “{{ sprint.name }}”</h2>
     <p class="mb-4 text-sm text-n200">

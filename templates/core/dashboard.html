@@ -13,7 +13,7 @@
       </span>
       <h2 class="text-lg font-medium text-n800">Welcome to AtlasHub</h2>
       <p class="max-w-md text-sm text-n200">
-        Create a Jira project space to plan sprints on a board, or a Confluence
+        Create an Atlas project space to plan sprints on a board, or a Hub
         space to write documentation with diagrams.
       </p>
       <a href="{% url 'core:space_create' %}" class="btn-primary mt-2">Create a space</a>
@@ -66,7 +66,7 @@
                   style="background-color: {{ s.color }}">{{ s.key|slice:':1' }}</span>
             <span class="min-w-0">
               <span class="block truncate text-sm font-semibold text-n800">{{ s.name }}</span>
-              <span class="block text-xs text-n200">{{ s.key }} · Software project</span>
+              <span class="block text-xs text-n200">{{ s.key }} · Atlas project</span>
             </span>
           </a>
         {% endfor %}
@@ -74,7 +74,7 @@
     {% endif %}
 
     {% if wiki_spaces %}
-      <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-n300">Wiki spaces</h2>
+      <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-n300">Hub spaces</h2>
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {% for s in wiki_spaces %}
           {% url 'wiki:space_home' s.key as wiki_home %}
@@ -83,7 +83,7 @@
                   style="background-color: {{ s.color }}">{{ s.key|slice:':1' }}</span>
             <span class="min-w-0">
               <span class="block truncate text-sm font-semibold text-n800">{{ s.name }}</span>
-              <span class="block text-xs text-n200">{{ s.key }} · Wiki space</span>
+              <span class="block text-xs text-n200">{{ s.key }} · Hub space</span>
             </span>
           </a>
         {% endfor %}

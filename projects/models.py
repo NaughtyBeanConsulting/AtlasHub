@@ -4,7 +4,7 @@ from django.db.models import Q
 
 from core.models import Space
 
-# Colours an epic's tag can take (ADS accents, purple first as Jira does).
+# Colours an epic's tag can take (ADS accents, purple first as Atlas does).
 EPIC_COLORS = [
     '#6554C0', '#00875A', '#0052CC', '#FF8B00',
     '#DE350B', '#00A3BF', '#403294', '#172B4D',
@@ -13,7 +13,7 @@ EPIC_COLORS = [
 
 class Status(models.Model):
     """A workflow status = a board column. Per-space data, not schema, so any
-    real Jira workflow can be reproduced by editing rows (seeded on space
+    real Atlas workflow can be reproduced by editing rows (seeded on space
     creation with To Do / In Progress / In Review / Done)."""
 
     CATEGORY_TODO = 'todo'
