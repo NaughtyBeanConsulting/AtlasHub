@@ -16,6 +16,35 @@ document.addEventListener('alpine:init', () => {
     show: true,
     init() { setTimeout(() => { this.show = false; }, timeout); },
   }));
+
+  // @mention autocomplete for textareas (x-ref="ta" inside the component).
+  Alpine.data('mentionBox', (url) => ({
+    results: [],
+    show: false,
+    onInput() {
+      const ta = this.$refs.ta;
+      const upto = ta.value.slice(0, ta.selectionStart);
+      const match = upto.match(/@([\w.\-]*)$/);
+      if (!match) { this.show = false; return; }
+      fetch(`${url}?q=${encodeURIComponent(match[1])}`)
+        .then((r) => r.json())
+        .then((data) => {
+          this.results = data.results;
+          this.show = this.results.length > 0;
+        })
+        .catch(() => { this.show = false; });
+    },
+    pick(item) {
+      const ta = this.$refs.ta;
+      const pos = ta.selectionStart;
+      const before = ta.value.slice(0, pos).replace(/@[\w.\-]*$/, `@[${item.name}](u:${item.id}) `);
+      ta.value = before + ta.value.slice(pos);
+      this.show = false;
+      ta.focus();
+      ta.selectionStart = before.length;
+      ta.selectionEnd = before.length;
+    },
+  }));
 });
 
 function csrfToken() {

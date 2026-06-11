@@ -1,0 +1,26 @@
+<ul class="space-y-3">
+  {% for a in activities %}
+    <li class="flex items-start gap-2.5">
+      {% include 'components/avatar.html' with u=a.actor size='h-6 w-6 text-[10px]' %}
+      <p class="min-w-0 flex-1 text-sm text-n500">
+        <span class="font-medium text-n800">{{ a.actor.display_name|default:'Someone' }}</span>
+        {% if a.field == 'created' %}
+          created the issue
+        {% elif a.field == 'comment' %}
+          commented
+        {% elif a.field == 'subtask' %}
+          added sub-task <span class="font-medium">{{ a.new_value }}</span>
+        {% elif a.field == 'description' %}
+          updated the description
+        {% else %}
+          changed <span class="font-medium">{{ a.field }}</span>
+          {% if a.old_value %}from <span class="font-medium">{{ a.old_value }}</span>{% endif %}
+          {% if a.new_value %}to <span class="font-medium">{{ a.new_value }}</span>{% else %}{% if not a.old_value %}{% else %}(cleared){% endif %}{% endif %}
+        {% endif %}
+        <span class="ml-1 text-xs text-n100">{{ a.created_at|timesince }} ago</span>
+      </p>
+    </li>
+  {% empty %}
+    <li class="text-sm italic text-n100">No history yet.</li>
+  {% endfor %}
+</ul>

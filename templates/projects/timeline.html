@@ -1,0 +1,102 @@
+{% extends 'projects/space_base.html' %}
+
+{% block title %}Timeline — {{ space.name }}{% endblock %}
+
+{% block space_content %}
+<main class="px-6 py-5">
+  <nav class="mb-1 text-xs text-n200">
+    <a href="{% url 'projects:home' %}" class="hover:underline">Projects</a>
+    <span class="mx-1">/</span>
+    <span>{{ space.name }}</span>
+  </nav>
+  <h1 class="mb-6 text-xl font-medium text-n800">Timeline</h1>
+
+  {% if weeks %}
+    <div class="card overflow-hidden">
+      <div class="flex">
+        {# Fixed label column #}
+        <div class="w-56 shrink-0 border-r border-n30">
+          <div class="flex h-9 items-end border-b border-n30 px-3 pb-1 text-[11px] font-bold uppercase tracking-wide text-n200">Sprints</div>
+          <div class="h-10 border-b border-n30"></div>
+          <div class="flex h-9 items-end px-3 pb-1 text-[11px] font-bold uppercase tracking-wide text-n200">Epics</div>
+          {% for bar in epic_bars %}
+            <div class="flex h-10 items-center gap-1.5 border-t border-n30 px-3">
+              {% include 'components/icons.html' with name='epic' class='h-3.5 w-3.5 shrink-0' %}
+              <a href="{% url 'projects:browse' bar.epic.key %}"
+                 class="truncate text-sm text-n800 hover:text-blue-500 hover:underline">{{ bar.epic.summary }}</a>
+            </div>
+          {% endfor %}
+        </div>
+
+        {# Scrollable chart #}
+        <div class="flex-1 overflow-x-auto">
+          <div class="relative" style="min-width: calc({{ total_days }} * 1.1rem)">
+            {% if today_pct %}
+              <div class="absolute bottom-0 top-0 z-10 w-px bg-red-400" style="left: {{ today_pct }}%"
+                   title="Today"></div>
+            {% endif %}
+
+            {# Week header #}
+            <div class="grid h-9 items-end border-b border-n30"
+                 style="grid-template-columns: repeat({{ total_days }}, minmax(0, 1fr))">
+              {% for week in weeks %}
+                <div class="border-l border-n30 px-1 pb-1 text-[10px] text-n100" style="grid-column: span 7">
+                  {{ week|date:'j M' }}
+                </div>
+              {% endfor %}
+            </div>
+
+            {# Sprint band #}
+            <div class="grid h-10 items-center border-b border-n30"
+                 style="grid-template-columns: repeat({{ total_days }}, minmax(0, 1fr))">
+              {% for bar in sprint_bars %}
+                <div class="row-start-1 mx-px flex h-6 items-center truncate rounded-[3px] px-2 text-[11px] font-medium
+                            {% if bar.sprint.state == 'active' %}bg-blue-500 text-white{% elif bar.sprint.state == 'completed' %}bg-n40 text-n500{% else %}bg-blue-50 text-blue-600{% endif %}"
+                     style="grid-column: {{ bar.start }} / span {{ bar.span }}"
+                     title="{{ bar.sprint.name }}: {{ bar.sprint.start_date|date:'j M' }} – {{ bar.sprint.end_date|date:'j M' }}{% if bar.sprint.state == 'active' %} (active){% endif %}">
+                  {{ bar.sprint.name }}
+                </div>
+              {% endfor %}
+            </div>
+
+            <div class="h-9"></div>
+
+            {# Epic bars #}
+            {% for bar in epic_bars %}
+              <div class="grid h-10 items-center border-t border-n30"
+                   style="grid-template-columns: repeat({{ total_days }}, minmax(0, 1fr))">
+                <div class="row-start-1 mx-px h-5 truncate rounded-full px-2 text-[10px] font-medium leading-5 text-white"
+                     style="grid-column: {{ bar.start }} / span {{ bar.span }}; background-color: {{ bar.epic.epic_color }}"
+                     title="{{ bar.epic.key }} {{ bar.epic.summary }}">
+                  {{ bar.epic.summary }}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if unscheduled_epics %}
+      <p class="mt-4 text-xs text-n200">
+        Not on the timeline (no issues in dated sprints):
+        {% for epic in unscheduled_epics %}
+          <a href="{% url 'projects:browse' epic.key %}" class="text-blue-500 hover:underline">{{ epic.key }}</a>{% if not forloop.last %}, {% endif %}
+        {% endfor %}
+      </p>
+    {% endif %}
+  {% else %}
+    <div class="card flex flex-col items-center gap-3 p-12 text-center">
+      <span class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-500">
+        {% include 'components/icons.html' with name='timeline' class='h-6 w-6' %}
+      </span>
+      <h2 class="text-lg font-medium text-n800">Nothing to plot yet</h2>
+      <p class="max-w-md text-sm text-n200">
+        The timeline shows sprints and epics across time. Start a sprint with
+        dates (and put epic issues in it) to see bars here.
+      </p>
+      <a href="{% url 'projects:backlog' space.key %}" class="btn-primary mt-2">Go to backlog</a>
+    </div>
+  {% endif %}
+</main>
+{% endblock %}

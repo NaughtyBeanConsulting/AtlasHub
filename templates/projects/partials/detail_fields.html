@@ -1,0 +1,15 @@
+<div class="card mb-6 divide-y divide-n30 {% if layout == 'panel' %}bg-n10{% endif %}">
+  {% include 'projects/partials/detail_field.html' with field='status' %}
+  {% include 'projects/partials/detail_field.html' with field='assignee' %}
+  {% include 'projects/partials/detail_field.html' with field='reporter' %}
+  {% include 'projects/partials/detail_field.html' with field='priority' %}
+  {% include 'projects/partials/detail_field.html' with field='story_points' %}
+  {% if issue.issue_type != 'subtask' and issue.issue_type != 'epic' %}
+    {% include 'projects/partials/detail_field.html' with field='sprint' %}
+    {% include 'projects/partials/detail_field.html' with field='epic' %}
+  {% endif %}
+  {% include 'projects/partials/detail_field.html' with field='labels' %}
+  <div class="px-3 py-2 text-[11px] text-n100">
+    Created {{ issue.created_at|date:'j M Y, H:i' }} · Updated {{ issue.updated_at|timesince }} ago
+  </div>
+</div>

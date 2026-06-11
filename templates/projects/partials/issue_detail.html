@@ -1,0 +1,30 @@
+{% comment %}Shared issue detail. layout='page' → two columns; 'panel' → stacked.{% endcomment %}
+{% if layout == 'page' %}
+  <div class="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
+    <div class="min-w-0">
+      {% include 'projects/partials/detail_summary.html' %}
+      {% include 'projects/partials/detail_description.html' %}
+      {% include 'projects/partials/ac_list.html' %}
+      {% if issue.issue_type == 'epic' %}
+        {% include 'projects/partials/epic_children.html' %}
+      {% elif issue.issue_type != 'subtask' %}
+        {% include 'projects/partials/subtask_list.html' %}
+      {% endif %}
+      {% include 'projects/partials/detail_tabs.html' %}
+    </div>
+    <div>{% include 'projects/partials/detail_fields.html' %}</div>
+  </div>
+{% else %}
+  <div class="min-w-0">
+    {% include 'projects/partials/detail_summary.html' %}
+    {% include 'projects/partials/detail_fields.html' %}
+    {% include 'projects/partials/detail_description.html' %}
+    {% include 'projects/partials/ac_list.html' %}
+    {% if issue.issue_type == 'epic' %}
+      {% include 'projects/partials/epic_children.html' %}
+    {% elif issue.issue_type != 'subtask' %}
+      {% include 'projects/partials/subtask_list.html' %}
+    {% endif %}
+    {% include 'projects/partials/detail_tabs.html' %}
+  </div>
+{% endif %}

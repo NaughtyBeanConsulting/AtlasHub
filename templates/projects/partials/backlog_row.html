@@ -6,7 +6,9 @@
   {% include 'components/icons.html' with name=issue.issue_type class='h-4 w-4 shrink-0' %}
   <a href="{% url 'projects:browse' issue.key %}"
      class="w-[4.5rem] shrink-0 text-xs font-medium text-n200 hover:text-blue-500 hover:underline">{{ issue.key }}</a>
-  <span class="min-w-0 flex-1 truncate text-sm text-n800">{{ issue.summary }}</span>
+  <span class="min-w-0 flex-1 cursor-pointer truncate text-sm text-n800 hover:text-blue-500"
+        hx-get="{% url 'projects:issue_panel' issue.key %}" hx-target="#issue-panel" hx-swap="innerHTML"
+        title="Open details">{{ issue.summary }}</span>
   {% if issue.epic %}
     <span class="lozenge hidden lg:inline-flex"
           style="background-color: {{ issue.epic.epic_color }}22; color: {{ issue.epic.epic_color }}">

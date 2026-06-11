@@ -1,0 +1,16 @@
+<div class="mt-2" x-data="{ tab: 'comments' }">
+  <div class="mb-4 flex gap-1 border-b border-n30">
+    <button type="button" class="tab-btn" :class="tab === 'comments' && 'tab-btn-active'"
+            @click="tab = 'comments'">Comments</button>
+    <button type="button" class="tab-btn" :class="tab === 'history' && 'tab-btn-active'"
+            @click="tab = 'history'"
+            hx-get="{% url 'projects:issue_activity' issue.key %}"
+            hx-target="#tab-history" hx-swap="innerHTML">History</button>
+  </div>
+  <div x-show="tab === 'comments'">
+    {% include 'projects/partials/comments.html' %}
+  </div>
+  <div x-cloak x-show="tab === 'history'">
+    <div id="tab-history" class="py-2 text-sm text-n100">Loading…</div>
+  </div>
+</div>

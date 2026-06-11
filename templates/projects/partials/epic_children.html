@@ -1,0 +1,16 @@
+<div class="mb-6">
+  <h2 class="section-label">Issues in this epic{% if epic_children %} <span class="font-normal text-n100">({{ epic_children|length }})</span>{% endif %}</h2>
+  <ul class="divide-y divide-n30 rounded-[3px] {% if epic_children %}border border-n30{% endif %}">
+    {% for child in epic_children %}
+      <li class="flex items-center gap-2 bg-white px-2.5 py-1.5 hover:bg-n10">
+        {% include 'components/icons.html' with name=child.issue_type class='h-4 w-4 shrink-0' %}
+        <a href="{% url 'projects:browse' child.key %}" class="text-xs font-medium text-n200 hover:text-blue-500 hover:underline">{{ child.key }}</a>
+        <span class="min-w-0 flex-1 truncate text-sm {% if child.is_done %}text-n100 line-through{% endif %}">{{ child.summary }}</span>
+        <span class="lozenge {{ child.status.lozenge_class }}">{{ child.status.name }}</span>
+        {% include 'components/avatar.html' with u=child.assignee %}
+      </li>
+    {% empty %}
+      <li class="px-1 py-1 text-sm italic text-n100">No issues yet — add some from the backlog.</li>
+    {% endfor %}
+  </ul>
+</div>

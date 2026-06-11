@@ -11,7 +11,10 @@ from django.views.decorators.http import require_POST
 from core.decorators import space_required
 from core.models import Space, SpaceMembership
 
-from .models import EPIC_COLORS, Issue, Sprint, Status
+from .models import (
+    EPIC_COLORS, AcceptanceCriterion, Comment, Issue, Label, Sprint, Status,
+)
+from .notifications import notify_issue_assigned, notify_mentions, notify_sprint_event
 from .services import record_activity
 
 
@@ -260,6 +263,7 @@ def sprint_start(request, space, sprint_id):
     sprint.start_date, sprint.end_date = start_date, end_date
     sprint.state = Sprint.STATE_ACTIVE
     sprint.save()
+    notify_sprint_event(sprint, request.user, 'started')
     messages.success(request, f'Sprint “{sprint.name}” started.')
     return redirect('projects:board', key=space.key)
 
@@ -291,6 +295,7 @@ def sprint_complete(request, space, sprint_id):
     sprint.state = Sprint.STATE_COMPLETED
     sprint.completed_at = timezone.now()
     sprint.save(update_fields=['state', 'completed_at'])
+    notify_sprint_event(sprint, request.user, 'completed')
 
     done_count = sprint.issues.count()
     destination = f'moved to “{target_sprint.name}”' if target_sprint else 'returned to the backlog'
@@ -356,15 +361,310 @@ def board_move(request, space):
     return HttpResponse(status=204)
 
 
-@login_required
-def issue_browse(request, issue_key):
+# ── Issue detail ─────────────────────────────────────────────────────────────
+
+def _get_issue(request, issue_key, min_role=SpaceMembership.ROLE_VIEWER):
     issue = get_object_or_404(
-        Issue.objects.select_related('space', 'status', 'assignee', 'reporter', 'epic', 'sprint'),
+        Issue.objects.select_related('space', 'status', 'assignee', 'reporter', 'epic', 'sprint', 'parent'),
         key__iexact=issue_key,
     )
-    if issue.space.role_for(request.user) is None:
+    role = issue.space.role_for(request.user)
+    if role is None:
         raise Http404
-    return render(request, 'projects/issue_browse.html', {
+    if SpaceMembership.ROLE_RANK[role] < SpaceMembership.ROLE_RANK[min_role]:
+        raise Http404
+    request.space, request.space_role = issue.space, role
+    return issue
+
+
+def _detail_context(request, issue, layout='page'):
+    space = issue.space
+    return {
         'issue': issue,
-        'space': issue.space,
+        'space': space,
+        'layout': layout,
+        'can_edit': SpaceMembership.ROLE_RANK[request.space_role] >= SpaceMembership.ROLE_RANK[SpaceMembership.ROLE_MEMBER],
+        'statuses': space.statuses.all(),
+        'members': space.members.filter(is_active=True),
+        'open_sprints': space.sprints.filter(state__in=[Sprint.STATE_PLANNED, Sprint.STATE_ACTIVE]),
+        'epics': space.issues.filter(issue_type=Issue.TYPE_EPIC).exclude(pk=issue.pk),
+        'priorities': Issue.PRIORITY_CHOICES,
+        'subtasks': issue.subtasks.select_related('status', 'assignee'),
+        'criteria': issue.acceptance_criteria.all(),
+        'comments': issue.comments.select_related('author'),
+        'label_names': ', '.join(issue.labels.values_list('name', flat=True)),
+        'epic_children': (
+            issue.epic_issues.select_related('status', 'assignee')
+            if issue.issue_type == Issue.TYPE_EPIC else None
+        ),
+    }
+
+
+@login_required
+def issue_browse(request, issue_key):
+    issue = _get_issue(request, issue_key)
+    return render(request, 'projects/issue_browse.html', _detail_context(request, issue))
+
+
+@login_required
+def issue_panel(request, issue_key):
+    """The same detail, as a side-panel partial over the board/backlog."""
+    issue = _get_issue(request, issue_key)
+    return render(request, 'projects/partials/issue_panel.html',
+                  _detail_context(request, issue, layout='panel'))
+
+
+@require_POST
+@login_required
+def issue_field(request, issue_key, field):
+    """Inline edit of a single issue field; responds with that field's block."""
+    issue = _get_issue(request, issue_key, min_role=SpaceMembership.ROLE_MEMBER)
+    space = issue.space
+    value = request.POST.get('value', '').strip()
+
+    if field == 'summary':
+        if value:
+            record_activity(issue, request.user, 'summary', issue.summary, value)
+            issue.summary = value
+            issue.save(update_fields=['summary', 'updated_at'])
+    elif field == 'description':
+        issue.description_md = request.POST.get('value', '')
+        record_activity(issue, request.user, 'description', '', 'updated')
+        issue.save(update_fields=['description_md', 'updated_at'])
+    elif field == 'status':
+        status = get_object_or_404(Status, pk=value, space=space)
+        if status.pk != issue.status_id:
+            record_activity(issue, request.user, 'status', issue.status.name, status.name)
+            issue.status = status
+            issue.save(update_fields=['status', 'updated_at'])
+    elif field == 'priority':
+        if value in dict(Issue.PRIORITY_CHOICES) and value != issue.priority:
+            record_activity(issue, request.user, 'priority',
+                            issue.get_priority_display(), dict(Issue.PRIORITY_CHOICES)[value])
+            issue.priority = value
+            issue.save(update_fields=['priority', 'updated_at'])
+    elif field == 'story_points':
+        try:
+            points = None if value == '' else max(0, min(999, int(value)))
+        except ValueError:
+            points = issue.story_points
+        if points != issue.story_points:
+            record_activity(issue, request.user, 'story points',
+                            issue.story_points or '', points if points is not None else '')
+            issue.story_points = points
+            issue.save(update_fields=['story_points', 'updated_at'])
+    elif field == 'assignee':
+        assignee = space.members.filter(pk=value).first() if value else None
+        if (assignee.pk if assignee else None) != issue.assignee_id:
+            record_activity(issue, request.user, 'assignee',
+                            issue.assignee.display_name if issue.assignee else 'Unassigned',
+                            assignee.display_name if assignee else 'Unassigned')
+            old_assignee = issue.assignee
+            issue.assignee = assignee
+            issue.save(update_fields=['assignee', 'updated_at'])
+            notify_issue_assigned(issue, request.user, old_assignee)
+    elif field == 'sprint':
+        sprint = get_object_or_404(
+            Sprint, pk=value, space=space,
+            state__in=[Sprint.STATE_PLANNED, Sprint.STATE_ACTIVE],
+        ) if value else None
+        if (sprint.pk if sprint else None) != issue.sprint_id:
+            record_activity(issue, request.user, 'sprint',
+                            issue.sprint.name if issue.sprint else 'Backlog',
+                            sprint.name if sprint else 'Backlog')
+            issue.sprint = sprint
+            issue.save(update_fields=['sprint', 'updated_at'])
+    elif field == 'epic':
+        epic = get_object_or_404(
+            Issue, pk=value, space=space, issue_type=Issue.TYPE_EPIC,
+        ) if value else None
+        if issue.issue_type != Issue.TYPE_EPIC and (epic.pk if epic else None) != issue.epic_id:
+            record_activity(issue, request.user, 'epic',
+                            issue.epic.summary if issue.epic else '',
+                            epic.summary if epic else '')
+            issue.epic = epic
+            issue.save(update_fields=['epic', 'updated_at'])
+    elif field == 'labels':
+        names = [n.strip() for n in value.split(',') if n.strip()][:10]
+        labels = [Label.objects.get_or_create(space=space, name=name)[0] for name in names]
+        old = ', '.join(issue.labels.values_list('name', flat=True))
+        new = ', '.join(label.name for label in labels)
+        if old != new:
+            record_activity(issue, request.user, 'labels', old, new)
+            issue.labels.set(labels)
+    else:
+        return HttpResponseBadRequest('Unknown field.')
+
+    context = _detail_context(request, issue, layout=request.POST.get('layout', 'page'))
+    if field == 'summary':
+        return render(request, 'projects/partials/detail_summary.html', context)
+    if field == 'description':
+        return render(request, 'projects/partials/detail_description.html', context)
+    context['field'] = field
+    return render(request, 'projects/partials/detail_field.html', context)
+
+
+@require_POST
+@login_required
+def comment_add(request, issue_key):
+    issue = _get_issue(request, issue_key, min_role=SpaceMembership.ROLE_MEMBER)
+    body = request.POST.get('body_md', '').strip()
+    if body:
+        comment = Comment.objects.create(issue=issue, author=request.user, body_md=body)
+        notify_mentions(issue, request.user, body)
+        record_activity(issue, request.user, 'comment', '', f'#{comment.pk}')
+    return render(request, 'projects/partials/comments.html',
+                  _detail_context(request, issue, layout=request.POST.get('layout', 'page')))
+
+
+@require_POST
+@login_required
+def comment_delete(request, issue_key, comment_id):
+    issue = _get_issue(request, issue_key, min_role=SpaceMembership.ROLE_MEMBER)
+    comment = get_object_or_404(Comment, pk=comment_id, issue=issue)
+    if comment.author_id == request.user.id or request.space_role == SpaceMembership.ROLE_ADMIN:
+        comment.delete()
+    return render(request, 'projects/partials/comments.html',
+                  _detail_context(request, issue, layout=request.POST.get('layout', 'page')))
+
+
+@require_POST
+@login_required
+def ac_add(request, issue_key):
+    issue = _get_issue(request, issue_key, min_role=SpaceMembership.ROLE_MEMBER)
+    text = request.POST.get('text', '').strip()
+    if text:
+        order = (issue.acceptance_criteria.aggregate(m=Max('order'))['m'] or 0) + 1
+        AcceptanceCriterion.objects.create(issue=issue, text=text, order=order)
+    return render(request, 'projects/partials/ac_list.html',
+                  _detail_context(request, issue, layout=request.POST.get('layout', 'page')))
+
+
+@require_POST
+@login_required
+def ac_toggle(request, issue_key, ac_id):
+    issue = _get_issue(request, issue_key, min_role=SpaceMembership.ROLE_MEMBER)
+    criterion = get_object_or_404(AcceptanceCriterion, pk=ac_id, issue=issue)
+    criterion.is_done = not criterion.is_done
+    criterion.save(update_fields=['is_done'])
+    return render(request, 'projects/partials/ac_list.html',
+                  _detail_context(request, issue, layout=request.POST.get('layout', 'page')))
+
+
+@require_POST
+@login_required
+def ac_delete(request, issue_key, ac_id):
+    issue = _get_issue(request, issue_key, min_role=SpaceMembership.ROLE_MEMBER)
+    get_object_or_404(AcceptanceCriterion, pk=ac_id, issue=issue).delete()
+    return render(request, 'projects/partials/ac_list.html',
+                  _detail_context(request, issue, layout=request.POST.get('layout', 'page')))
+
+
+@require_POST
+@login_required
+def subtask_add(request, issue_key):
+    issue = _get_issue(request, issue_key, min_role=SpaceMembership.ROLE_MEMBER)
+    summary = request.POST.get('summary', '').strip()
+    if summary and issue.issue_type != Issue.TYPE_SUBTASK:
+        subtask = Issue.objects.create_issue(
+            space=issue.space,
+            issue_type=Issue.TYPE_SUBTASK,
+            summary=summary,
+            status=_first_status(issue.space),
+            reporter=request.user,
+            parent=issue,
+            epic=issue.epic,
+        )
+        record_activity(subtask, request.user, 'created')
+        record_activity(issue, request.user, 'subtask', '', subtask.key)
+    return render(request, 'projects/partials/subtask_list.html',
+                  _detail_context(request, issue, layout=request.POST.get('layout', 'page')))
+
+
+@login_required
+def issue_activity(request, issue_key):
+    issue = _get_issue(request, issue_key)
+    return render(request, 'projects/partials/activity_list.html', {
+        'activities': issue.activities.select_related('actor')[:50],
     })
+
+
+@space_required()
+def mentions(request, space):
+    """JSON autocomplete source for @mentions (space members)."""
+    from django.http import JsonResponse
+    q = request.GET.get('q', '').strip()
+    members = space.members.filter(is_active=True)
+    if q:
+        members = (
+            members.filter(first_name__icontains=q)
+            | members.filter(last_name__icontains=q)
+            | members.filter(email__icontains=q)
+        )
+    return JsonResponse({'results': [
+        {'id': m.pk, 'name': m.display_name} for m in members.distinct()[:8]
+    ]})
+
+
+# ── Timeline ─────────────────────────────────────────────────────────────────
+
+@space_required(space_type=Space.TYPE_SOFTWARE)
+def timeline(request, space):
+    sprints = list(
+        space.sprints
+        .exclude(start_date__isnull=True).exclude(end_date__isnull=True)
+        .order_by('start_date')
+    )
+    context = {'space': space, 'sprints': sprints}
+    if sprints:
+        range_start = min(s.start_date for s in sprints)
+        range_start -= datetime.timedelta(days=range_start.weekday())  # snap to Monday
+        range_end = max(s.end_date for s in sprints)
+        range_end += datetime.timedelta(days=6 - range_end.weekday())  # snap to Sunday
+        total_days = (range_end - range_start).days + 1
+
+        def col(day):
+            return (day - range_start).days + 1  # css grid columns are 1-based
+
+        sprint_bars = [{
+            'sprint': s,
+            'start': col(s.start_date),
+            'span': (s.end_date - s.start_date).days + 1,
+        } for s in sprints]
+
+        # An epic spans from the start of the earliest sprint containing its
+        # issues to the end of the latest one.
+        dated = {s.pk: s for s in sprints}
+        epic_bars = []
+        epic_sprints = {}
+        for issue in space.issues.filter(epic__isnull=False, sprint__in=sprints).select_related('epic', 'sprint'):
+            epic_sprints.setdefault(issue.epic, []).append(dated[issue.sprint_id])
+        for epic in space.issues.filter(issue_type=Issue.TYPE_EPIC):
+            in_sprints = epic_sprints.get(epic)
+            if not in_sprints:
+                continue
+            start = min(s.start_date for s in in_sprints)
+            end = max(s.end_date for s in in_sprints)
+            epic_bars.append({
+                'epic': epic,
+                'start': col(start),
+                'span': (end - start).days + 1,
+            })
+
+        today = timezone.localdate()
+        weeks = [range_start + datetime.timedelta(days=7 * i) for i in range(total_days // 7)]
+        context.update({
+            'total_days': total_days,
+            'weeks': weeks,
+            'sprint_bars': sprint_bars,
+            'epic_bars': epic_bars,
+            'unscheduled_epics': [
+                e for e in space.issues.filter(issue_type=Issue.TYPE_EPIC)
+                if e not in epic_sprints
+            ],
+            'today_pct': (
+                round(((today - range_start).days + 0.5) / total_days * 100, 2)
+                if range_start <= today <= range_end else None
+            ),
+        })
+    return render(request, 'projects/timeline.html', context)

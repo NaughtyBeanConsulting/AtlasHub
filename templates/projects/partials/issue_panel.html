@@ -1,0 +1,19 @@
+<aside class="fixed bottom-0 right-0 top-14 z-30 w-full max-w-[560px] overflow-y-auto border-l border-n30 bg-white shadow-overlay"
+       @keydown.escape.window="document.getElementById('issue-panel').innerHTML = ''">
+  <div class="sticky top-0 z-10 flex items-center gap-2 border-b border-n30 bg-white px-5 py-2.5">
+    {% include 'components/icons.html' with name=issue.issue_type class='h-4 w-4' %}
+    <a href="{% url 'projects:browse' issue.key %}"
+       class="text-xs font-medium text-n200 hover:text-blue-500 hover:underline">{{ issue.key }}</a>
+    <span class="flex-1"></span>
+    <a href="{% url 'projects:browse' issue.key %}" class="btn-icon" title="Open full view">
+      {% include 'components/icons.html' with name='move' class='h-4 w-4' %}
+    </a>
+    <button type="button" class="btn-icon" title="Close"
+            onclick="document.getElementById('issue-panel').innerHTML = ''">
+      {% include 'components/icons.html' with name='x' class='h-4 w-4' %}
+    </button>
+  </div>
+  <div class="px-5 py-4">
+    {% include 'projects/partials/issue_detail.html' %}
+  </div>
+</aside>

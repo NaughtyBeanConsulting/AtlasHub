@@ -1,0 +1,34 @@
+{% load markdown_extras %}
+<div id="issue-description" x-data="{ editing: false }" class="mb-6">
+  <h2 class="section-label">Description</h2>
+  <div x-show="!editing"
+       {% if can_edit %}@click="editing = true" title="Click to edit"{% endif %}
+       class="-mx-2 min-h-[2.25rem] rounded-[3px] px-2 py-1 {% if can_edit %}cursor-text hover:bg-n20{% endif %}">
+    {% if issue.description_md %}
+      <div class="prose-ah">{{ issue.description_md|markdownify }}</div>
+    {% else %}
+      <p class="text-sm italic text-n100">Add a description…</p>
+    {% endif %}
+  </div>
+  {% if can_edit %}
+    <form x-cloak x-show="editing"
+          hx-post="{% url 'projects:issue_field' issue.key 'description' %}"
+          hx-target="#issue-description" hx-swap="outerHTML">
+      <div x-data="mentionBox('{% url 'projects:mentions' space.key %}')" class="relative">
+        <textarea name="value" rows="7" x-ref="ta" @input="onInput" @keydown.escape="show = false"
+                  class="input font-mono !text-[13px]"
+                  placeholder="Describe the work. Markdown and @mentions are supported.">{{ issue.description_md }}</textarea>
+        <div x-cloak x-show="show" class="menu absolute left-2 top-full z-50 -mt-1 max-h-44 overflow-y-auto">
+          <template x-for="r in results" :key="r.id">
+            <button type="button" class="menu-item" @click="pick(r)" x-text="r.name"></button>
+          </template>
+        </div>
+      </div>
+      <input type="hidden" name="layout" value="{{ layout }}">
+      <div class="mt-2 flex gap-2">
+        <button type="submit" class="btn-primary">Save</button>
+        <button type="button" @click="editing = false" class="btn-subtle">Cancel</button>
+      </div>
+    </form>
+  {% endif %}
+</div>
