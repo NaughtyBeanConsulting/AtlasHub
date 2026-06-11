@@ -1,0 +1,114 @@
+{% url 'projects:home' as projects_home %}
+{% url 'wiki:home' as wiki_home %}
+{% url 'core:space_create' as space_create %}
+{% url 'core:search' as search_url %}
+{% url 'whatsapp:dashboard' as whatsapp_url %}
+<header class="sticky top-0 z-40 flex h-14 items-center gap-1 border-b border-n30 bg-white pl-3 pr-4">
+  <a href="{% url 'dashboard' %}" class="mr-1 flex items-center gap-2 rounded-[3px] px-2 py-1.5 hover:bg-n20">
+    <span class="flex h-6 w-6 items-center justify-center rounded-[3px] bg-blue-500 text-sm font-bold text-white">A</span>
+    <span class="text-base font-semibold text-n800">AtlasHub</span>
+  </a>
+
+  <nav class="hidden h-full items-stretch md:flex">
+    <a href="{% url 'dashboard' %}"
+       class="nav-tab {% if request.resolver_match.url_name == 'dashboard' %}nav-tab-active{% endif %}">
+      Your work
+    </a>
+
+    {% if projects_home %}
+    <div class="relative flex h-full items-stretch" x-data="dropdown">
+      <button @click="toggle" @click.outside="close"
+              class="nav-tab {% if request.resolver_match.namespace == 'projects' %}nav-tab-active{% endif %}">
+        Jira
+        {% include 'components/icons.html' with name='chevron-down' class='h-3.5 w-3.5' %}
+      </button>
+      <div x-cloak x-show="open" x-transition.origin.top.left class="menu absolute left-0 top-12">
+        {% if nav_software_spaces %}
+          <p class="menu-heading">Projects</p>
+          {% for s in nav_software_spaces %}
+            <a class="menu-item" href="{% url 'projects:board' s.key %}">
+              <span class="flex h-5 w-5 items-center justify-center rounded-[3px] text-[10px] font-bold text-white" style="background-color: {{ s.color }}">{{ s.key|slice:":1" }}</span>
+              <span class="flex-1 truncate">{{ s.name }}</span>
+              <span class="text-[11px] text-n100">{{ s.key }}</span>
+            </a>
+          {% endfor %}
+          <div class="my-1.5 border-t border-n30"></div>
+        {% endif %}
+        <a class="menu-item" href="{{ projects_home }}">View all projects</a>
+        {% if space_create %}<a class="menu-item" href="{{ space_create }}?type=software">Create project</a>{% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if wiki_home %}
+    <div class="relative flex h-full items-stretch" x-data="dropdown">
+      <button @click="toggle" @click.outside="close"
+              class="nav-tab {% if request.resolver_match.namespace == 'wiki' %}nav-tab-active{% endif %}">
+        Confluence
+        {% include 'components/icons.html' with name='chevron-down' class='h-3.5 w-3.5' %}
+      </button>
+      <div x-cloak x-show="open" x-transition.origin.top.left class="menu absolute left-0 top-12">
+        {% if nav_wiki_spaces %}
+          <p class="menu-heading">Spaces</p>
+          {% for s in nav_wiki_spaces %}
+            <a class="menu-item" href="{% url 'wiki:space_home' s.key %}">
+              <span class="flex h-5 w-5 items-center justify-center rounded-[3px] text-[10px] font-bold text-white" style="background-color: {{ s.color }}">{{ s.key|slice:":1" }}</span>
+              <span class="flex-1 truncate">{{ s.name }}</span>
+              <span class="text-[11px] text-n100">{{ s.key }}</span>
+            </a>
+          {% endfor %}
+          <div class="my-1.5 border-t border-n30"></div>
+        {% endif %}
+        <a class="menu-item" href="{{ wiki_home }}">View all spaces</a>
+        {% if space_create %}<a class="menu-item" href="{{ space_create }}?type=wiki">Create space</a>{% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if space_create %}
+    <div class="ml-2 flex items-center">
+      <a href="{{ space_create }}" class="btn-primary">Create</a>
+    </div>
+    {% endif %}
+  </nav>
+
+  <div class="ml-auto flex items-center gap-1">
+    {% if search_url %}
+    <form action="{{ search_url }}" method="get" class="relative hidden sm:block">
+      <span class="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-n100">
+        {% include 'components/icons.html' with name='search' class='h-3.5 w-3.5' %}
+      </span>
+      <input type="search" name="q" value="{{ request.GET.q }}" placeholder="Search"
+             class="input w-44 !bg-white py-1 pl-7 transition-all focus:w-64">
+    </form>
+    {% endif %}
+
+    <div class="relative" x-data="dropdown">
+      <button @click="toggle" @click.outside="close" class="btn-icon" aria-label="Your profile">
+        {% include 'components/avatar.html' with u=user size='h-7 w-7 text-[11px]' %}
+      </button>
+      <div x-cloak x-show="open" x-transition.origin.top.right class="menu absolute right-0 top-10">
+        <div class="flex items-center gap-3 px-4 py-2.5">
+          {% include 'components/avatar.html' with u=user size='h-9 w-9 text-sm' %}
+          <div class="min-w-0">
+            <p class="truncate text-sm font-medium text-n800">{{ user.display_name }}</p>
+            <p class="truncate text-xs text-n200">{{ user.email }}</p>
+          </div>
+        </div>
+        <div class="my-1 border-t border-n30"></div>
+        <a class="menu-item" href="{% url 'accounts:profile' %}">Profile and preferences</a>
+        <a class="menu-item" href="{% url 'accounts:password_change' %}">Change password</a>
+        {% if user.is_staff %}
+          <div class="my-1 border-t border-n30"></div>
+          <a class="menu-item" href="/admin/">Administration</a>
+          {% if whatsapp_url %}<a class="menu-item" href="{{ whatsapp_url }}">WhatsApp connection</a>{% endif %}
+        {% endif %}
+        <div class="my-1 border-t border-n30"></div>
+        <form method="post" action="{% url 'accounts:logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="menu-item">Log out</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</header>

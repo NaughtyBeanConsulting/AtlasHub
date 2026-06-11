@@ -1,0 +1,27 @@
+{% extends 'accounts/auth_base.html' %}
+
+{% block title %}Sign up — AtlasHub{% endblock %}
+
+{% block card %}
+<h1 class="mb-6 text-center text-base font-semibold text-n500">Create your account</h1>
+{% if form.non_field_errors %}
+  <div class="mb-4 rounded-[3px] border-l-4 border-red-500 bg-red-50 p-3 text-sm text-n800">
+    {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+  </div>
+{% endif %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% include 'components/field.html' with field=form.email %}
+  <div class="grid grid-cols-2 gap-3">
+    {% include 'components/field.html' with field=form.first_name %}
+    {% include 'components/field.html' with field=form.last_name %}
+  </div>
+  {% include 'components/field.html' with field=form.phone %}
+  {% include 'components/field.html' with field=form.password1 %}
+  {% include 'components/field.html' with field=form.password2 %}
+  <button type="submit" class="btn-primary w-full !py-2">Sign up</button>
+</form>
+<div class="mt-6 flex items-center justify-center border-t border-n30 pt-4 text-sm">
+  <a href="{% url 'accounts:login' %}" class="text-blue-500 hover:underline">Already have an account? Log in</a>
+</div>
+{% endblock %}

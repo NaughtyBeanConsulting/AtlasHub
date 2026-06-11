@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Your work — AtlasHub{% endblock %}
+
+{% block body %}
+<main class="mx-auto w-full max-w-5xl px-6 py-10">
+  <h1 class="mb-8 text-2xl font-medium text-n800">Your work</h1>
+  {% url 'core:space_create' as space_create %}
+  <div class="card flex flex-col items-center gap-3 p-12 text-center">
+    <span class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-500">
+      {% include 'components/icons.html' with name='board' class='h-6 w-6' %}
+    </span>
+    <h2 class="text-lg font-medium text-n800">Welcome to AtlasHub</h2>
+    <p class="max-w-md text-sm text-n200">
+      Create a Jira project space to plan sprints on a board, or a Confluence
+      space to write documentation with diagrams.
+    </p>
+    {% if space_create %}
+      <a href="{{ space_create }}" class="btn-primary mt-2">Create a space</a>
+    {% endif %}
+  </div>
+</main>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% comment %}
+Initials avatar. Usage:
+  {% include 'components/avatar.html' with u=some_user size='h-6 w-6 text-[10px]' %}
+`u` may be None → grey "unassigned" avatar. The background colour is per-user
+data (stable hash), not a theme token, hence the inline style.
+{% endcomment %}
+{% with size=size|default:'h-6 w-6 text-[10px]' %}
+{% if u %}
+<span class="inline-flex {{ size }} shrink-0 select-none items-center justify-center rounded-full font-bold leading-none text-white"
+      style="background-color: {{ u.avatar_color }}" title="{{ u.display_name }}">{{ u.initials }}</span>
+{% else %}
+<span class="inline-flex {{ size }} shrink-0 items-center justify-center rounded-full bg-n40 text-n200" title="Unassigned">
+  {% include 'components/icons.html' with name='user' class='h-[60%] w-[60%]' %}
+</span>
+{% endif %}
+{% endwith %}

@@ -1,0 +1,19 @@
+{% load static %}<!doctype html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}AtlasHub{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
+  <script src="{% static 'vendor/htmx.min.js' %}" defer></script>
+  <script src="{% static 'js/app.js' %}" defer></script>
+  <script src="{% static 'vendor/alpine.min.js' %}" defer></script>
+  {% block head %}{% endblock %}
+</head>
+<body class="min-h-screen bg-white font-sans text-n800 antialiased"
+      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  {% if user.is_authenticated %}{% include 'components/topnav.html' %}{% endif %}
+  {% include 'components/toasts.html' %}
+  {% block body %}{% endblock %}
+</body>
+</html>

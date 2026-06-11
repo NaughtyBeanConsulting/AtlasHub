@@ -1,0 +1,14 @@
+{% if messages %}
+<div class="fixed bottom-6 left-6 z-50 w-80 space-y-2">
+  {% for message in messages %}
+  <div x-data="toast(6000)" x-show="show" x-transition.opacity.duration.300ms
+       class="flex items-start gap-3 rounded-[3px] border-l-4 bg-white p-4 shadow-overlay
+              {% if 'success' in message.tags %}border-green-400{% elif 'error' in message.tags %}border-red-500{% elif 'warning' in message.tags %}border-yellow-400{% else %}border-blue-400{% endif %}">
+    <p class="flex-1 text-sm text-n800">{{ message }}</p>
+    <button type="button" @click="show = false" class="text-n100 hover:text-n500" aria-label="Dismiss">
+      {% include 'components/icons.html' with name='x' class='h-4 w-4' %}
+    </button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}

@@ -1,0 +1,8 @@
+Django>=6.0,<6.1
+psycopg[binary]>=3.2
+python-dotenv>=1.0
+django-unfold>=0.96
+Markdown>=3.7
+nh3>=0.2
+whitenoise>=6.8
+gunicorn>=23.0

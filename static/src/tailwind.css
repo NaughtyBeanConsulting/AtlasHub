@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+[x-cloak] {
+  display: none !important;
+}
+
+@layer components {
+  /* Buttons */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-[3px] bg-blue-500 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-subtle {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-[3px] bg-n20 px-3 py-1.5 text-sm font-medium text-n500 transition-colors hover:bg-n30 focus:outline-none focus:ring-2 focus:ring-blue-200;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-[3px] px-3 py-1.5 text-sm font-medium text-n500 transition-colors hover:bg-n20 focus:outline-none focus:ring-2 focus:ring-blue-200;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-[3px] bg-red-500 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-red-400 focus:outline-none focus:ring-2 focus:ring-red-300;
+  }
+  .btn-icon {
+    @apply inline-flex h-8 w-8 items-center justify-center rounded-[3px] text-n500 transition-colors hover:bg-n20 focus:outline-none focus:ring-2 focus:ring-blue-200;
+  }
+
+  /* Form controls */
+  .label {
+    @apply mb-1 block text-xs font-semibold text-n300;
+  }
+  .input {
+    @apply block w-full rounded-[3px] border-2 border-n40 bg-n10 px-2.5 py-1.5 text-sm text-n800 placeholder-n100 transition-colors focus:border-blue-500 focus:bg-white focus:outline-none;
+  }
+  .checkbox {
+    @apply h-4 w-4 rounded-sm border-2 border-n40 text-blue-500 focus:ring-blue-200;
+  }
+  .errorlist {
+    @apply mt-1 list-none space-y-0.5 text-xs text-red-500;
+  }
+
+  /* Surfaces */
+  .card {
+    @apply rounded-[3px] bg-white shadow-raised;
+  }
+  .menu {
+    @apply z-50 min-w-[220px] rounded-[3px] bg-white py-1.5 shadow-overlay;
+  }
+  .menu-item {
+    @apply flex w-full items-center gap-2 px-4 py-1.5 text-left text-sm text-n800 hover:bg-n20;
+  }
+  .menu-heading {
+    @apply px-4 pb-1 pt-2.5 text-[11px] font-bold uppercase tracking-wide text-n200;
+  }
+
+  /* Top navigation */
+  .nav-tab {
+    @apply relative inline-flex h-full items-center gap-1 border-b-2 border-transparent px-3 text-sm font-medium text-n500 transition-colors hover:text-blue-500;
+  }
+  .nav-tab-active {
+    @apply border-blue-500 text-blue-500;
+  }
+
+  /* Badges & pills */
+  .badge {
+    @apply inline-flex items-center rounded-[3px] bg-n20 px-1.5 py-0.5 text-[11px] font-bold text-n500;
+  }
+  .lozenge {
+    @apply inline-flex items-center whitespace-nowrap rounded-[3px] px-1.5 py-px text-[11px] font-bold uppercase tracking-wide;
+  }
+  .lozenge-todo {
+    @apply bg-n40 text-n500;
+  }
+  .lozenge-inprogress {
+    @apply bg-blue-50 text-blue-600;
+  }
+  .lozenge-done {
+    @apply bg-green-50 text-green-600;
+  }
+}
