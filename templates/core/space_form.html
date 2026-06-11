@@ -14,14 +14,20 @@
       <p class="label">Type <span class="text-red-500">*</span></p>
       <div class="mb-4 grid grid-cols-2 gap-3">
         {% for radio in form.space_type %}
-          <label class="flex cursor-pointer items-center gap-2 rounded-[3px] border-2 border-n40 px-3 py-2.5 text-sm font-medium text-n800 transition-colors has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50">
-            {{ radio.tag }}
-            {% if radio.choice_value == 'software' %}
-              {% include 'components/icons.html' with name='board' class='h-4 w-4 text-blue-500' %}
+          <label class="flex cursor-pointer items-start gap-2.5 rounded-[3px] border-2 border-n40 px-3 py-3 transition-colors hover:border-n50 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-200">
+            <input type="radio" name="{{ form.space_type.name }}" value="{{ radio.data.value }}"
+                   class="sr-only" {% if radio.data.selected %}checked{% endif %}>
+            {% if radio.data.value == 'software' %}
+              {% include 'components/icons.html' with name='board' class='mt-0.5 h-4 w-4 shrink-0 text-blue-500' %}
             {% else %}
-              {% include 'components/icons.html' with name='page' class='h-4 w-4 text-blue-500' %}
+              {% include 'components/icons.html' with name='page' class='mt-0.5 h-4 w-4 shrink-0 text-blue-500' %}
             {% endif %}
-            {{ radio.choice_label }}
+            <span class="min-w-0">
+              <span class="block text-sm font-medium text-n800">{{ radio.choice_label }}</span>
+              <span class="block text-xs text-n200">
+                {% if radio.data.value == 'software' %}Backlog, sprints, board and timeline{% else %}Pages, diagrams, drafts and history{% endif %}
+              </span>
+            </span>
           </label>
         {% endfor %}
       </div>
@@ -33,13 +39,13 @@
       {% include 'components/field.html' with field=form.description %}
 
       <p class="label">Colour</p>
-      <div class="mb-6 flex gap-2">
+      <div class="mb-6 flex gap-2.5">
         {% for radio in form.color %}
           <label>
-            <input type="radio" name="{{ form.color.name }}" value="{{ radio.choice_value }}" class="peer sr-only"
-                   {% if radio.is_checked or forloop.first and not form.color.value %}checked{% endif %}>
-            <span class="block h-7 w-7 cursor-pointer rounded-[3px] ring-blue-500 ring-offset-2 peer-checked:ring-2"
-                  style="background-color: {{ radio.choice_value }}"></span>
+            <input type="radio" name="{{ form.color.name }}" value="{{ radio.data.value }}" class="peer sr-only"
+                   {% if radio.data.selected %}checked{% endif %}>
+            <span class="block h-7 w-7 cursor-pointer rounded-[3px] outline-blue-500 transition-shadow peer-checked:outline peer-checked:outline-2 peer-checked:outline-offset-2 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2"
+                  style="background-color: {{ radio.data.value }}"></span>
           </label>
         {% endfor %}
       </div>

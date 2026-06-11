@@ -8,12 +8,16 @@ from .models import NotificationPreference, User
 
 
 class StyledFormMixin:
-    """Apply the shared Tailwind input class to every visible widget."""
+    """Apply the shared Tailwind input class to every visible widget.
+    Radio/checkbox groups are skipped — templates render those by hand
+    (cards, swatches) and a block-level `input` class breaks their layout."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
             widget = field.widget
+            if isinstance(widget, (forms.RadioSelect, forms.CheckboxSelectMultiple)):
+                continue
             if isinstance(widget, forms.CheckboxInput):
                 widget.attrs.setdefault('class', 'checkbox')
             else:

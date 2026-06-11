@@ -7,11 +7,18 @@ from .models import SPACE_COLORS, Space, SpaceMembership
 
 
 class SpaceForm(StyledFormMixin, forms.ModelForm):
+    # Declared explicitly so the auto ModelForm field doesn't inject Django's
+    # blank '---------' radio (the model field has no default).
+    space_type = forms.ChoiceField(
+        choices=Space.TYPE_CHOICES,
+        initial=Space.TYPE_SOFTWARE,
+        widget=forms.RadioSelect,
+    )
+
     class Meta:
         model = Space
         fields = ['space_type', 'name', 'key', 'description', 'color']
         widgets = {
-            'space_type': forms.RadioSelect,
             'key': forms.TextInput(attrs={
                 'placeholder': 'e.g. CLIC', 'maxlength': 10,
                 'class': 'input uppercase', 'x-on:input': '$el.value = $el.value.toUpperCase()',

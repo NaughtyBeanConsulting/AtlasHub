@@ -30,7 +30,7 @@
               {% for c in epic_colors %}
                 <label>
                   <input type="radio" name="color" value="{{ c }}" class="peer sr-only" {% if forloop.first %}checked{% endif %}>
-                  <span class="block h-7 w-7 cursor-pointer rounded-[3px] ring-blue-500 ring-offset-2 peer-checked:ring-2"
+                  <span class="block h-7 w-7 cursor-pointer rounded-[3px] outline-blue-500 transition-shadow peer-checked:outline peer-checked:outline-2 peer-checked:outline-offset-2"
                         style="background-color: {{ c }}"></span>
                 </label>
               {% endfor %}
