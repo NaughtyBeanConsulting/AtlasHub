@@ -45,8 +45,11 @@
     {% endif %}
   </div>
 
-  {% block sprint_panel %}{% endblock %}
+  {% include 'projects/partials/sprint_panel.html' %}
 
+  <div class="mb-2 flex items-center justify-between px-1.5">
+    <h2 class="text-sm font-semibold text-n800">Backlog</h2>
+  </div>
   <div id="backlog-groups">
     {% for group in groups %}
       {% include 'projects/partials/backlog_group.html' %}

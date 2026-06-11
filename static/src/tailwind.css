@@ -7,16 +7,27 @@
 }
 
 /* Empty drag targets keep a visible drop zone with a hint. */
-.js-backlog-list:empty {
-  border: 1px dashed #dfe1e6;
+.js-backlog-list:empty,
+.js-sprint-list:empty {
+  border: 1px dashed #c1c7d0;
+  border-radius: 3px;
   min-height: 2.25rem;
 }
-.js-backlog-list:empty::after {
-  content: 'No issues — drag one here or create below';
+.js-backlog-list:empty::after,
+.js-sprint-list:empty::after {
   display: block;
   padding: 0.5rem;
   font-size: 0.75rem;
   color: #7a869a;
+}
+.js-backlog-list:empty::after {
+  content: 'No issues — drag one here or create below';
+}
+.js-sprint-list:empty::after {
+  content: 'Plan this sprint by dragging issues here';
+}
+.js-board-list {
+  min-height: 3rem;
 }
 
 @layer components {

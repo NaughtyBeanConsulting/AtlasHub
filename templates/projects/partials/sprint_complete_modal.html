@@ -1,0 +1,26 @@
+{% comment %}Expects: sprint (active), planned_sprints, space. Alpine scope provides showComplete.{% endcomment %}
+<div x-cloak x-show="showComplete" @click.self="showComplete = false"
+     class="fixed inset-0 z-50 flex items-center justify-center bg-n900/50 p-4">
+  <div class="card w-full max-w-md p-6 !shadow-overlay">
+    <h2 class="mb-1 text-lg font-medium text-n800">Complete “{{ sprint.name }}”</h2>
+    <p class="mb-4 text-sm text-n200">
+      Done issues stay in the sprint's history. Choose where incomplete issues go:
+    </p>
+    <form method="post" action="{% url 'projects:sprint_complete' space.key sprint.id %}">
+      {% csrf_token %}
+      <label class="mb-2 flex items-center gap-2 text-sm text-n800">
+        <input type="radio" name="target" value="backlog" checked class="checkbox"> Back to the backlog
+      </label>
+      {% for planned in planned_sprints %}
+        <label class="mb-2 flex items-center gap-2 text-sm text-n800">
+          <input type="radio" name="target" value="{{ planned.id }}" class="checkbox">
+          Into “{{ planned.name }}”
+        </label>
+      {% endfor %}
+      <div class="mt-6 flex justify-end gap-2">
+        <button type="button" @click="showComplete = false" class="btn-subtle">Cancel</button>
+        <button type="submit" class="btn-primary">Complete sprint</button>
+      </div>
+    </form>
+  </div>
+</div>

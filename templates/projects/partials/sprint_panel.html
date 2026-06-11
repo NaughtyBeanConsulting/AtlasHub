@@ -1,0 +1,83 @@
+<div class="mb-8">
+  {% for sg in sprint_groups %}
+    <section class="mb-3 rounded-[3px] bg-n20 p-2.5"
+             x-data="{ open: true, showStart: false, showComplete: false }">
+      <header class="flex items-center gap-2 px-1">
+        <button type="button" @click="open = !open" class="text-n200 transition-transform" :class="open || '-rotate-90'">
+          {% include 'components/icons.html' with name='chevron-down' class='h-3.5 w-3.5' %}
+        </button>
+        {% include 'components/icons.html' with name='sprint' class='h-4 w-4 text-n300' %}
+        <span class="text-sm font-semibold text-n800">{{ sg.sprint.name }}</span>
+        {% if sg.sprint.state == 'active' %}
+          <span class="lozenge lozenge-inprogress">Active</span>
+          {% if sg.sprint.start_date %}
+            <span class="text-xs text-n200">{{ sg.sprint.start_date|date:'j M' }} – {{ sg.sprint.end_date|date:'j M' }}</span>
+          {% endif %}
+        {% endif %}
+        <span class="badge">{{ sg.issues|length }} issue{{ sg.issues|length|pluralize }}</span>
+        <span class="ml-auto"></span>
+        {% if request.space_role == 'admin' %}
+          {% if sg.sprint.state == 'planned' and not has_active_sprint %}
+            <button type="button" @click="showStart = true" class="btn-primary !py-1 text-xs">Start sprint</button>
+          {% elif sg.sprint.state == 'active' %}
+            <button type="button" @click="showComplete = true" class="btn-subtle !py-1 text-xs">Complete sprint</button>
+          {% endif %}
+        {% endif %}
+      </header>
+
+      <div x-show="open" class="mt-2">
+        <div class="js-sprint-list rounded-[3px]"
+             data-sprint="{{ sg.sprint.id }}"
+             data-url="{% url 'projects:sprint_move' space.key %}">
+          {% for issue in sg.issues %}
+            {% include 'projects/partials/backlog_row.html' %}
+          {% endfor %}
+        </div>
+      </div>
+
+      {% if request.space_role == 'admin' and sg.sprint.state == 'planned' %}
+        <div x-cloak x-show="showStart" @click.self="showStart = false"
+             class="fixed inset-0 z-50 flex items-center justify-center bg-n900/50 p-4">
+          <div class="card w-full max-w-md p-6 !shadow-overlay">
+            <h2 class="mb-4 text-lg font-medium text-n800">Start sprint</h2>
+            <form method="post" action="{% url 'projects:sprint_start' space.key sg.sprint.id %}">
+              {% csrf_token %}
+              <label class="label">Sprint name</label>
+              <input name="name" class="input mb-4" value="{{ sg.sprint.name }}" maxlength="120">
+              <label class="label">Sprint goal</label>
+              <textarea name="goal" rows="2" class="input mb-4"
+                        placeholder="What should this sprint achieve?">{{ sg.sprint.goal }}</textarea>
+              <div class="mb-6 grid grid-cols-2 gap-3">
+                <div>
+                  <label class="label">Start date</label>
+                  <input type="date" name="start_date" class="input" required value="{{ default_start|date:'Y-m-d' }}">
+                </div>
+                <div>
+                  <label class="label">End date</label>
+                  <input type="date" name="end_date" class="input" required value="{{ default_end|date:'Y-m-d' }}">
+                </div>
+              </div>
+              <div class="flex justify-end gap-2">
+                <button type="button" @click="showStart = false" class="btn-subtle">Cancel</button>
+                <button type="submit" class="btn-primary">Start</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if request.space_role == 'admin' and sg.sprint.state == 'active' %}
+        {% include 'projects/partials/sprint_complete_modal.html' with sprint=sg.sprint %}
+      {% endif %}
+    </section>
+  {% endfor %}
+
+  {% if request.space_role == 'admin' %}
+    <form method="post" action="{% url 'projects:sprint_create' space.key %}" class="px-1">
+      {% csrf_token %}
+      <button type="submit" class="btn-subtle text-xs">
+        {% include 'components/icons.html' with name='plus' class='h-3.5 w-3.5' %} Create sprint
+      </button>
+    </form>
+  {% endif %}
+</div>

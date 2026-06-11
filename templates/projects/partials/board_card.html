@@ -1,0 +1,21 @@
+<div class="js-board-card card group mb-1.5 cursor-grab p-3 transition-colors hover:bg-n10"
+     data-id="{{ issue.id }}">
+  <a href="{% url 'projects:browse' issue.key %}"
+     class="block text-sm leading-snug text-n800 group-hover:text-blue-500">{{ issue.summary }}</a>
+  {% if issue.epic %}
+    <span class="lozenge mt-2"
+          style="background-color: {{ issue.epic.epic_color }}22; color: {{ issue.epic.epic_color }}">
+      {{ issue.epic.summary|truncatechars:26 }}
+    </span>
+  {% endif %}
+  <div class="mt-2.5 flex items-center gap-1.5">
+    {% include 'components/icons.html' with name=issue.issue_type class='h-4 w-4 shrink-0' %}
+    <span class="text-xs font-medium text-n200 {% if issue.is_done %}line-through{% endif %}">{{ issue.key }}</span>
+    <span class="flex-1"></span>
+    {% with pname='p-'|add:issue.priority %}
+      <span title="{{ issue.get_priority_display }} priority">{% include 'components/icons.html' with name=pname class='h-3.5 w-3.5' %}</span>
+    {% endwith %}
+    {% if issue.story_points is not None %}<span class="badge">{{ issue.story_points }}</span>{% endif %}
+    {% include 'components/avatar.html' with u=issue.assignee %}
+  </div>
+</div>

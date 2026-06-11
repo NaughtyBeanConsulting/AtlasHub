@@ -58,10 +58,60 @@ function initBacklogLists(root) {
   });
 }
 
+// Backlog: sprint-planning panels — same drag group as the backlog lists so
+// issues can be dragged between the backlog and (planned/active) sprints.
+function initSprintLists(root) {
+  if (!window.Sortable) return;
+  root.querySelectorAll('.js-sprint-list').forEach((el) => {
+    if (el._sortable) return;
+    el._sortable = new Sortable(el, {
+      group: 'backlog',
+      handle: '.js-grip',
+      animation: 150,
+      ghostClass: 'opacity-40',
+      onEnd(evt) {
+        const list = evt.to;
+        const params = new URLSearchParams();
+        params.append('moved', evt.item.dataset.id);
+        if (list.dataset.sprint) {
+          params.append('sprint', list.dataset.sprint);
+        } else {
+          params.append('epic', list.dataset.epic || '');
+        }
+        list.querySelectorAll('.js-backlog-row').forEach((row) => params.append('ids', row.dataset.id));
+        postForm(list.dataset.url, params);
+      },
+    });
+  });
+}
+
+// Board: drag cards between status columns.
+function initBoardLists(root) {
+  if (!window.Sortable) return;
+  root.querySelectorAll('.js-board-list').forEach((el) => {
+    if (el._sortable) return;
+    el._sortable = new Sortable(el, {
+      group: 'board',
+      animation: 150,
+      ghostClass: 'opacity-40',
+      onEnd(evt) {
+        const list = evt.to;
+        const params = new URLSearchParams();
+        params.append('moved', evt.item.dataset.id);
+        params.append('status', list.dataset.status);
+        list.querySelectorAll('.js-board-card').forEach((card) => params.append('ids', card.dataset.id));
+        postForm(list.dataset.url, params);
+      },
+    });
+  });
+}
+
 // htmx.onLoad fires on initial load and after every swap.
 if (window.htmx) {
   htmx.onLoad((root) => {
     initBacklogLists(root);
+    initSprintLists(root);
+    initBoardLists(root);
   });
 }
 
