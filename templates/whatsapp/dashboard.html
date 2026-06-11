@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}WhatsApp — AtlasHub{% endblock %}
+
+{% block body %}
+<main class="mx-auto w-full max-w-4xl px-6 py-10">
+  <h1 class="mb-1 text-2xl font-medium text-n800">WhatsApp connection</h1>
+  <p class="mb-8 text-sm text-n200">
+    Notifications and password resets are queued here and sent through the
+    Node worker. The system keeps working while the worker is down — messages
+    simply wait in the queue.
+  </p>
+
+  <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <section class="card p-5">
+      <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-n300">Status</h2>
+      <div hx-get="{% url 'whatsapp:status_panel' %}" hx-trigger="load, every 5s" hx-swap="innerHTML">
+        {% include 'whatsapp/partials/status_panel.html' %}
+      </div>
+      <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-n30 pt-4">
+        <a href="{% url 'whatsapp:link_device' %}" class="btn-primary">Link a device</a>
+        <form method="post" action="{% url 'whatsapp:restart_service' %}">
+          {% csrf_token %}<button type="submit" class="btn-subtle">Restart worker</button>
+        </form>
+        <form method="post" action="{% url 'whatsapp:disconnect_service' %}"
+              onsubmit="return confirm('Log out of WhatsApp and clear the session?')">
+          {% csrf_token %}<button type="submit" class="btn-danger">Disconnect</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="card p-5">
+      <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-n300">Send a test message</h2>
+      <form method="post" action="{% url 'whatsapp:send_message' %}">
+        {% csrf_token %}
+        <label class="label" for="wa-phone">Phone number</label>
+        <input id="wa-phone" name="phone" class="input mb-3" placeholder="e.g. 071 684 3608" required>
+        <label class="label" for="wa-message">Message</label>
+        <textarea id="wa-message" name="message" rows="3" class="input mb-4" required
+                  placeholder="Queued and sent on the next scheduler tick (~10s)."></textarea>
+        <button type="submit" class="btn-primary">Queue message</button>
+      </form>
+    </section>
+  </div>
+
+  <section class="card p-5">
+    <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-n300">Message queue</h2>
+    <div hx-get="{% url 'whatsapp:message_queue_partial' %}" hx-trigger="load, every 5s" hx-swap="innerHTML">
+      {% include 'whatsapp/partials/message_queue.html' %}
+    </div>
+  </section>
+</main>
+{% endblock %}

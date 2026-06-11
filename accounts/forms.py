@@ -1,6 +1,8 @@
 from django import forms
 from django.contrib.auth import password_validation
-from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
+from django.contrib.auth.forms import (
+    AuthenticationForm, PasswordChangeForm, SetPasswordForm,
+)
 
 from .models import NotificationPreference, User
 
@@ -79,6 +81,18 @@ class LoginForm(StyledFormMixin, AuthenticationForm):
 
 class StyledPasswordChangeForm(StyledFormMixin, PasswordChangeForm):
     pass
+
+
+class StyledSetPasswordForm(StyledFormMixin, SetPasswordForm):
+    pass
+
+
+class PasswordResetRequestForm(StyledFormMixin, forms.Form):
+    email = forms.EmailField(
+        label='Email address',
+        widget=forms.EmailInput(attrs={'autocomplete': 'email', 'autofocus': True,
+                                       'placeholder': 'you@example.com'}),
+    )
 
 
 class ProfileForm(StyledFormMixin, forms.ModelForm):

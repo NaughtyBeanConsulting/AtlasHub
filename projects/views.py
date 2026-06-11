@@ -431,6 +431,7 @@ def issue_field(request, issue_key, field):
         issue.description_md = request.POST.get('value', '')
         record_activity(issue, request.user, 'description', '', 'updated')
         issue.save(update_fields=['description_md', 'updated_at'])
+        notify_mentions(issue, request.user, issue.description_md)
     elif field == 'status':
         status = get_object_or_404(Status, pk=value, space=space)
         if status.pk != issue.status_id:

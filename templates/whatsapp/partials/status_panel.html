@@ -1,0 +1,18 @@
+<div class="flex items-center gap-3">
+  {% if info.status == 'CONNECTED' %}
+    <span class="lozenge lozenge-done">Connected</span>
+    <p class="text-sm text-n500">Messages flush automatically every ~10 seconds.</p>
+  {% elif info.status == 'QR_READY' %}
+    <span class="lozenge lozenge-inprogress">QR ready</span>
+    <p class="text-sm text-n500">
+      A pairing QR code is waiting —
+      <a href="{% url 'whatsapp:link_device' %}" class="text-blue-500 hover:underline">scan it now</a>.
+    </p>
+  {% elif info.status == 'STARTING' %}
+    <span class="lozenge lozenge-inprogress">Starting…</span>
+    <p class="text-sm text-n500">The worker is booting WhatsApp Web.</p>
+  {% else %}
+    <span class="lozenge bg-red-50 text-red-600">{{ info.status|default:'DISCONNECTED' }}</span>
+    <p class="text-sm text-n500">{{ info.error|default:'The worker is unreachable — queued messages will wait.' }}</p>
+  {% endif %}
+</div>

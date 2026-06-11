@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'core',
     'projects',
     'wiki',
+    'whatsapp',
 ]
 
 MIDDLEWARE = [

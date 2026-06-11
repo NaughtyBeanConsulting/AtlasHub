@@ -1,0 +1,19 @@
+[Unit]
+Description=WhatsApp Node Worker for AtlasHub
+After=network.target
+
+[Service]
+User=www
+Group=www
+WorkingDirectory=/www/wwwroot/AtlasHub/whatsapp-node-worker
+EnvironmentFile=/www/wwwroot/AtlasHub/.env
+ExecStart=/usr/bin/node index.js
+Restart=always
+RestartSec=10
+KillMode=mixed
+TimeoutStopSec=15
+StandardOutput=append:/var/log/atlashub/whatsapp-worker.log
+StandardError=append:/var/log/atlashub/whatsapp-worker.log
+
+[Install]
+WantedBy=multi-user.target

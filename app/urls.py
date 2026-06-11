@@ -10,4 +10,5 @@ urlpatterns = [
     path('', include('core.urls')),
     path('', include('projects.urls')),
     path('', include('wiki.urls')),
+    path('', include('whatsapp.urls')),
 ]
