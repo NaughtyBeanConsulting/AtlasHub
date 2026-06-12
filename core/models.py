@@ -38,6 +38,13 @@ class Space(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     # Per-space sequence behind issue keys (software spaces only).
     issue_counter = models.PositiveIntegerField(default=0)
+    # Atlas projects can adopt a Hub space as their documentation home.
+    # Project members get implicit read access to it (see role_for).
+    linked_hub_space = models.ForeignKey(
+        'self', null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='linked_projects',
+        limit_choices_to={'space_type': 'wiki'},
+    )
 
     members = models.ManyToManyField(
         settings.AUTH_USER_MODEL, through='SpaceMembership', related_name='spaces',
@@ -50,13 +57,23 @@ class Space(models.Model):
         return f'{self.name} ({self.key})'
 
     def role_for(self, user):
-        """The user's role in this space, or None. Superusers act as admins."""
+        """The user's role in this space, or None. Superusers act as admins.
+        Members of an Atlas project get implicit viewer access to the Hub
+        space linked as that project's documentation (page-level restrictions
+        and drafts still apply on top)."""
         if not user.is_authenticated:
             return None
         if user.is_superuser:
             return SpaceMembership.ROLE_ADMIN
         membership = self.memberships.filter(user=user).first()
-        return membership.role if membership else None
+        if membership:
+            return membership.role
+        if (
+            self.space_type == self.TYPE_WIKI
+            and self.linked_projects.filter(memberships__user=user).exists()
+        ):
+            return SpaceMembership.ROLE_VIEWER
+        return None
 
 
 class SpaceMembership(models.Model):

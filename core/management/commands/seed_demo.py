@@ -224,6 +224,8 @@ class Command(BaseCommand):
             description='How we build and run Click & Collect.',
             color='#00875A', created_by=demo,
         )
+        clic.linked_hub_space = eng  # ENG is CLIC's documentation home
+        clic.save(update_fields=['linked_hub_space'])
         for user, role in [(demo, 'admin'), (thandi, 'member'), (pieter, 'member')]:
             SpaceMembership.objects.create(space=eng, user=user, role=role)
 

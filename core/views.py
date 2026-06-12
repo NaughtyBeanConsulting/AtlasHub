@@ -155,6 +155,25 @@ def space_settings(request, space):
                     membership.delete()
                     messages.success(request, f'{membership.user.display_name} removed.')
             return redirect('core:space_settings', key=space.key)
+        elif action == 'link_hub' and space.space_type == Space.TYPE_SOFTWARE:
+            target = None
+            if request.POST.get('hub_space'):
+                target = Space.objects.filter(
+                    pk=request.POST['hub_space'], space_type=Space.TYPE_WIKI,
+                ).first()
+                if target and target.role_for(request.user) is None:
+                    target = None  # can't link a space you can't see
+            space.linked_hub_space = target
+            space.save(update_fields=['linked_hub_space'])
+            if target:
+                messages.success(
+                    request,
+                    f'“{target.name}” is now this project\'s documentation space — '
+                    'project members can read it and link its pages to issues.',
+                )
+            else:
+                messages.success(request, 'Hub space unlinked.')
+            return redirect('core:space_settings', key=space.key)
         elif action == 'delete_space':
             if request.POST.get('confirm_key') == space.key:
                 name = space.name
@@ -164,9 +183,18 @@ def space_settings(request, space):
             messages.error(request, 'Type the space key to confirm deletion.')
             return redirect('core:space_settings', key=space.key)
 
+    if request.user.is_superuser:
+        hub_choices = Space.objects.filter(space_type=Space.TYPE_WIKI)
+    else:
+        hub_choices = request.user.spaces.filter(space_type=Space.TYPE_WIKI)
+    if space.linked_hub_space and space.linked_hub_space not in hub_choices:
+        hub_choices = list(hub_choices) + [space.linked_hub_space]
+
     return render(request, 'core/space_settings.html', {
         'space': space,
         'memberships': space.memberships.select_related('user'),
         'add_form': add_form,
         'roles': SpaceMembership.ROLE_CHOICES,
+        'hub_choices': hub_choices,
+        'linked_projects': space.linked_projects.all() if space.space_type == Space.TYPE_WIKI else None,
     })

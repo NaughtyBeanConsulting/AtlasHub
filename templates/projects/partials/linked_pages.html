@@ -41,7 +41,11 @@
             <span class="text-xs text-n100" x-text="r.space"></span>
           </button>
         </template>
-        <p class="px-4 py-2 text-sm italic text-n100" x-show="searched && results.length === 0">No matching pages.</p>
+        <p class="px-4 py-2 text-sm italic text-n100" x-show="searched && results.length === 0">
+          No pages available — link a Hub space to this project under
+          <a href="{% url 'core:space_settings' space.key %}" class="not-italic text-blue-500 hover:underline">Project settings</a>,
+          or join a Hub space.
+        </p>
       </div>
     </div>
   {% endif %}

@@ -948,8 +948,17 @@ def link_search(request, issue_key):
 
     issue = _get_issue(request, issue_key, min_role=SpaceMembership.ROLE_MEMBER)
     q = request.GET.get('q', '').strip()
+    # The project's linked documentation space comes first, then any Hub
+    # spaces the user belongs to. filter_pages_for_user enforces page-level
+    # security either way (project members hold implicit viewer access on
+    # the linked space).
+    space_ids = set(
+        request.user.spaces.filter(space_type=Space.TYPE_WIKI).values_list('pk', flat=True)
+    )
+    if issue.space.linked_hub_space_id:
+        space_ids.add(issue.space.linked_hub_space_id)
     candidates = (
-        Page.objects.filter(space__in=request.user.spaces.filter(space_type=Space.TYPE_WIKI))
+        Page.objects.filter(space_id__in=space_ids)
         .exclude(pk__in=issue.linked_pages.values_list('pk', flat=True))
         .select_related('space')
         .order_by('-updated_at')

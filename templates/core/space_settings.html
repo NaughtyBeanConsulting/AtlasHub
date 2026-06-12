@@ -64,6 +64,59 @@
     </form>
   </div>
 
+  {% if space.space_type == 'software' %}
+    <div class="card mb-6 p-6">
+      <h2 class="mb-1 text-sm font-semibold uppercase tracking-wide text-n300">Documentation (Hub space)</h2>
+      <p class="mb-4 text-xs text-n200">
+        Link a Hub space as this project's documentation home. Project members
+        get read access to it, its pages appear in the issue "Link a Hub page"
+        dropdown, and both sidebars cross-link. Page restrictions and drafts
+        still apply.
+      </p>
+      <form method="post" class="flex items-end gap-2">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="link_hub">
+        <div class="min-w-0 flex-1">
+          <label class="label" for="hub-space">Hub space</label>
+          <select id="hub-space" name="hub_space" class="input">
+            <option value="">— None —</option>
+            {% for hub in hub_choices %}
+              <option value="{{ hub.pk }}" {% if hub.pk == space.linked_hub_space_id %}selected{% endif %}>
+                {{ hub.name }} ({{ hub.key }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn-primary">Save</button>
+      </form>
+      {% if not hub_choices %}
+        <p class="mt-2 text-xs text-n200">
+          No Hub spaces available — <a href="{% url 'core:space_create' %}?type=wiki" class="text-blue-500 hover:underline">create one</a> first.
+        </p>
+      {% endif %}
+    </div>
+  {% elif linked_projects %}
+    <div class="card mb-6 p-6">
+      <h2 class="mb-1 text-sm font-semibold uppercase tracking-wide text-n300">Linked Atlas projects</h2>
+      <p class="mb-3 text-xs text-n200">
+        These projects use this space as their documentation home — their
+        members can read published, unrestricted pages here.
+      </p>
+      <ul class="flex flex-wrap gap-2">
+        {% for project in linked_projects %}
+          <li>
+            <a href="{% url 'projects:project_home' project.key %}"
+               class="flex items-center gap-2 rounded-[3px] border border-n40 px-2.5 py-1 text-sm text-n800 hover:bg-n10">
+              <span class="flex h-5 w-5 items-center justify-center rounded-[3px] text-[10px] font-bold text-white"
+                    style="background-color: {{ project.color }}">{{ project.key|slice:':1' }}</span>
+              {{ project.name }} <span class="text-xs text-n100">{{ project.key }}</span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
   <div class="card border-l-4 border-red-500 p-6">
     <h2 class="mb-1 text-sm font-semibold uppercase tracking-wide text-red-500">Danger zone</h2>
     <p class="mb-4 text-xs text-n200">

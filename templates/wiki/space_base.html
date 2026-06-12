@@ -27,6 +27,13 @@
     </ul>
 
     <div class="mt-auto border-t border-n30 pt-3">
+      {% for project in space.linked_projects.all %}
+        <a href="{% url 'projects:project_home' project.key %}" class="side-item" title="Atlas project using this space for documentation">
+          {% include 'components/icons.html' with name='board' class='h-4 w-4' %}
+          <span class="truncate">{{ project.name }}</span>
+          <span class="ml-auto text-[10px] font-bold text-n100">{{ project.key }}</span>
+        </a>
+      {% endfor %}
       {% if request.space_role == 'admin' %}
         <a href="{% url 'core:space_settings' space.key %}" class="side-item">
           {% include 'components/icons.html' with name='move' class='h-4 w-4' %} Space settings
