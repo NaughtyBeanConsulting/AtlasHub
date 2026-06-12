@@ -24,17 +24,24 @@
   </ul>
   {% if can_edit %}
     <div x-data="pageLink('{% url 'projects:link_search' issue.key %}', '{% url 'projects:link_add' issue.key %}', '{{ layout }}')"
-         class="relative mt-1">
-      <input x-ref="q" @input.debounce.300ms="search" @keydown.escape="show = false"
-             placeholder="Link a Hub page… (type to search)"
-             class="input !border-transparent !bg-transparent hover:!border-n40 focus:!border-blue-500">
-      <div x-cloak x-show="show" class="menu absolute left-0 top-full z-50 -mt-1 max-h-44 overflow-y-auto">
+         class="relative mt-1" @click.outside="show = false">
+      <input x-ref="q" @focus="search" @input.debounce.300ms="search" @keydown.escape="show = false"
+             placeholder="Link a Hub page… (browse or type to search)"
+             class="input !border-transparent !bg-transparent !pr-8 hover:!border-n40 focus:!border-blue-500">
+      <button type="button" @click="show ? show = false : search()"
+              class="absolute right-1.5 top-1/2 -translate-y-1/2 text-n100 transition-colors hover:text-n500"
+              title="Browse available pages">
+        {% include 'components/icons.html' with name='chevron-down' class='h-4 w-4' %}
+      </button>
+      <div x-cloak x-show="show" class="menu absolute left-0 top-full z-50 -mt-1 max-h-56 w-full overflow-y-auto">
+        <p class="menu-heading" x-show="!$refs.q.value.trim()">Recently updated pages</p>
         <template x-for="r in results" :key="r.id">
           <button type="button" class="menu-item" @click="link(r)">
             <span class="min-w-0 flex-1 truncate" x-text="r.title"></span>
             <span class="text-xs text-n100" x-text="r.space"></span>
           </button>
         </template>
+        <p class="px-4 py-2 text-sm italic text-n100" x-show="searched && results.length === 0">No matching pages.</p>
       </div>
     </div>
   {% endif %}

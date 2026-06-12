@@ -104,16 +104,20 @@ document.addEventListener('alpine:init', () => {
   }));
 
   // Hub-page autocomplete on the issue detail ("Link a Hub page…").
+  // An empty query browses recently updated pages, so the dropdown also works
+  // without typing (focus or the chevron button).
   Alpine.data('pageLink', (searchUrl, addUrl, layout) => ({
     results: [],
     show: false,
+    searched: false,
     search() {
       const q = this.$refs.q.value.trim();
       fetch(`${searchUrl}?q=${encodeURIComponent(q)}`)
         .then((r) => r.json())
         .then((data) => {
           this.results = data.results;
-          this.show = this.results.length > 0;
+          this.searched = true;
+          this.show = true;
         })
         .catch(() => { this.show = false; });
     },

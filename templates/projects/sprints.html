@@ -14,16 +14,9 @@
     <a href="{% url 'projects:backlog' space.key %}" class="btn-subtle">Plan sprints on the backlog</a>
   </div>
 
-  {% if velocity %}
-    <section class="card mb-6 p-5">
-      <h2 class="mb-1 text-sm font-semibold uppercase tracking-wide text-n300">Velocity</h2>
-      <p class="mb-3 text-xs text-n200">Story points completed per closed sprint.</p>
-      {% include 'projects/partials/chart_velocity.html' with chart=velocity %}
-    </section>
-  {% endif %}
-
   {% for g in groups %}
-    <section class="card mb-4" x-data="{ open: {% if g.sprint.state == 'active' %}true{% else %}false{% endif %} }">
+    <section class="card mb-4"
+             x-data="{ open: {% if g.sprint.state == 'active' %}true{% else %}false{% endif %}, showCharts: false, chartTab: 'burndown' }">
       <header class="flex cursor-pointer items-center gap-2.5 px-4 py-3" @click="open = !open">
         <button type="button" class="text-n200 transition-transform" :class="open || '-rotate-90'">
           {% include 'components/icons.html' with name='chevron-down' class='h-3.5 w-3.5' %}
@@ -62,12 +55,58 @@
         <a href="{% url 'projects:capacity' space.key g.sprint.id %}" class="btn-ghost !py-1 text-xs" @click.stop
            title="Capacity planner">Capacity</a>
         {% if g.sprint.state == 'completed' %}
+          <button type="button" class="btn-subtle !py-1 text-xs" @click.stop="showCharts = true"
+                  title="Burndown and velocity charts">
+            {% include 'components/icons.html' with name='timeline' class='h-3.5 w-3.5' %} Charts
+          </button>
           <a href="{% url 'projects:retro' space.key g.sprint.id %}" class="btn-subtle !py-1 text-xs" @click.stop
              title="Retrospective">Retro</a>
         {% elif g.sprint.state == 'active' %}
           <a href="{% url 'projects:board' space.key %}" class="btn-primary !py-1 text-xs" @click.stop>Open board</a>
         {% endif %}
       </header>
+
+      {% if g.sprint.state == 'completed' %}
+        <div x-cloak x-show="showCharts" @click.self="showCharts = false" @keydown.escape.window="showCharts = false"
+             class="backdrop">
+          <div class="card w-full max-w-2xl p-6 !shadow-overlay">
+            <div class="mb-1 flex items-start justify-between gap-3">
+              <h2 class="text-lg font-medium text-n800">{{ g.sprint.name }} — charts</h2>
+              <button type="button" class="btn-icon" @click="showCharts = false" title="Close">
+                {% include 'components/icons.html' with name='x' class='h-4 w-4' %}
+              </button>
+            </div>
+            <div class="mb-4 flex gap-1 border-b border-n30">
+              <button type="button" class="tab-btn" :class="chartTab === 'burndown' && 'tab-btn-active'"
+                      @click="chartTab = 'burndown'">Burndown</button>
+              <button type="button" class="tab-btn" :class="chartTab === 'velocity' && 'tab-btn-active'"
+                      @click="chartTab = 'velocity'">Velocity</button>
+            </div>
+            <div x-show="chartTab === 'burndown'">
+              {% if g.burndown %}
+                <p class="mb-3 text-xs text-n200">
+                  Story points remaining per day (reconstructed from the activity log) against the ideal line.
+                </p>
+                {% include 'projects/partials/chart_burndown.html' with chart=g.burndown %}
+              {% else %}
+                <p class="py-8 text-center text-sm italic text-n100">
+                  No burndown data — the sprint needs start/end dates and issues with story points.
+                </p>
+              {% endif %}
+            </div>
+            <div x-cloak x-show="chartTab === 'velocity'">
+              {% if velocity %}
+                <p class="mb-3 text-xs text-n200">
+                  Story points completed per closed sprint across this project, with the average.
+                </p>
+                {% include 'projects/partials/chart_velocity.html' with chart=velocity %}
+              {% else %}
+                <p class="py-8 text-center text-sm italic text-n100">No completed sprints to chart yet.</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
 
       <div x-cloak x-show="open" class="border-t border-n30">
         <ul class="divide-y divide-n30">
@@ -98,12 +137,6 @@
             {{ g.carried_over }} issue{{ g.carried_over|pluralize }} left this sprint before or at completion
             (rolled over to the backlog or another sprint).
           </p>
-        {% endif %}
-        {% if g.burndown %}
-          <div class="border-t border-n30 px-4 py-3">
-            <h3 class="mb-2 text-[11px] font-bold uppercase tracking-wide text-n200">Burndown</h3>
-            {% include 'projects/partials/chart_burndown.html' with chart=g.burndown %}
-          </div>
         {% endif %}
       </div>
     </section>
