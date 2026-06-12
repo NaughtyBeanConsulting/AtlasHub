@@ -12,7 +12,8 @@ from core.decorators import space_required
 from core.models import Space, SpaceMembership
 
 from .models import (
-    EPIC_COLORS, AcceptanceCriterion, Comment, Issue, Label, Sprint, Status,
+    EPIC_COLORS, AcceptanceCriterion, Activity, Comment, Issue, Label, Sprint,
+    Status,
 )
 from .notifications import notify_issue_assigned, notify_mentions, notify_sprint_event
 from .services import record_activity
@@ -310,6 +311,49 @@ def sprint_complete(request, space, sprint_id):
     return redirect('projects:backlog', key=space.key)
 
 
+@space_required(space_type=Space.TYPE_SOFTWARE)
+def sprints(request, space):
+    """Sprint history: every sprint (active, planned, completed) with its
+    issues and done/points stats. Completed sprints keep their finished
+    issues; incomplete ones were moved out at completion, so the carried-over
+    count is reconstructed from the activity log."""
+    state_order = {Sprint.STATE_ACTIVE: 0, Sprint.STATE_PLANNED: 1, Sprint.STATE_COMPLETED: 2}
+    all_sprints = sorted(
+        space.sprints.all(),
+        key=lambda s: (state_order[s.state], -(s.completed_at or s.created_at).timestamp()),
+    )
+    issues = (
+        space.issues.filter(sprint__in=all_sprints)
+        .exclude(issue_type=Issue.TYPE_SUBTASK)
+        .select_related('status', 'assignee', 'epic')
+    )
+    by_sprint = {}
+    for issue in issues:
+        by_sprint.setdefault(issue.sprint_id, []).append(issue)
+
+    carried = {
+        row['old_value']: row['n'] for row in
+        Activity.objects.filter(issue__space=space, field='sprint')
+        .exclude(old_value='')
+        .values('old_value')
+        .annotate(n=Count('issue', distinct=True))
+    }
+
+    groups = []
+    for sprint in all_sprints:
+        sprint_issues = by_sprint.get(sprint.pk, [])
+        done = [i for i in sprint_issues if i.is_done]
+        groups.append({
+            'sprint': sprint,
+            'issues': sprint_issues,
+            'done_count': len(done),
+            'points_total': sum(i.story_points or 0 for i in sprint_issues),
+            'points_done': sum(i.story_points or 0 for i in done),
+            'carried_over': carried.get(sprint.name, 0) if sprint.state == Sprint.STATE_COMPLETED else 0,
+        })
+    return render(request, 'projects/sprints.html', {'space': space, 'groups': groups})
+
+
 @require_POST
 @space_required(role=SpaceMembership.ROLE_MEMBER, space_type=Space.TYPE_SOFTWARE)
 def sprint_quick_add(request, space):
@@ -580,10 +624,15 @@ def issue_field(request, issue_key, field):
             issue.save(update_fields=['assignee', 'updated_at'])
             notify_issue_assigned(issue, request.user, old_assignee)
     elif field == 'sprint':
-        sprint = get_object_or_404(
-            Sprint, pk=value, space=space,
-            state__in=[Sprint.STATE_PLANNED, Sprint.STATE_ACTIVE],
-        ) if value else None
+        if value and str(issue.sprint_id) == value:
+            # Re-selected the current sprint (possibly a completed one that
+            # isn't in the open-sprint options) — nothing to change.
+            sprint = issue.sprint
+        else:
+            sprint = get_object_or_404(
+                Sprint, pk=value, space=space,
+                state__in=[Sprint.STATE_PLANNED, Sprint.STATE_ACTIVE],
+            ) if value else None
         if (sprint.pk if sprint else None) != issue.sprint_id:
             record_activity(issue, request.user, 'sprint',
                             issue.sprint.name if issue.sprint else 'Backlog',

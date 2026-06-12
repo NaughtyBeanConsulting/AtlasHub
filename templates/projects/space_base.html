@@ -22,6 +22,12 @@
     <a href="{% url 'projects:backlog' space.key %}" class="side-item {% if request.resolver_match.url_name == 'backlog' %}side-item-active{% endif %}">
       {% include 'components/icons.html' with name='backlog' class='h-4 w-4' %} Backlog
     </a>
+    {% url 'projects:sprints' space.key as sprints_url %}
+    {% if sprints_url %}
+      <a href="{{ sprints_url }}" class="side-item {% if request.resolver_match.url_name == 'sprints' %}side-item-active{% endif %}">
+        {% include 'components/icons.html' with name='sprint' class='h-4 w-4' %} Sprints
+      </a>
+    {% endif %}
     {% url 'projects:timeline' space.key as timeline_url %}
     {% if timeline_url %}
       <a href="{{ timeline_url }}" class="side-item {% if request.resolver_match.url_name == 'timeline' %}side-item-active{% endif %}">

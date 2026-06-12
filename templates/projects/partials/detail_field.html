@@ -82,6 +82,9 @@
       <input type="hidden" name="layout" value="{{ layout }}">
       <select name="value" class="field-select max-w-[150px]" onchange="this.form.requestSubmit()">
         <option value="">Backlog</option>
+        {% if issue.sprint and issue.sprint.state == 'completed' %}
+          <option value="{{ issue.sprint_id }}" selected>{{ issue.sprint.name }} (completed)</option>
+        {% endif %}
         {% for s in open_sprints %}<option value="{{ s.id }}" {% if s.id == issue.sprint_id %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
       </select>
     </form>

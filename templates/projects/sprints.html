@@ -1,0 +1,102 @@
+{% extends 'projects/space_base.html' %}
+
+{% block title %}Sprints — {{ space.name }}{% endblock %}
+
+{% block space_content %}
+<main class="mx-auto w-full max-w-3xl px-6 py-5">
+  <nav class="mb-1 text-xs text-n200">
+    <a href="{% url 'projects:home' %}" class="hover:underline">Projects</a>
+    <span class="mx-1">/</span>
+    <span>{{ space.name }}</span>
+  </nav>
+  <div class="mb-6 flex items-center justify-between">
+    <h1 class="text-xl font-medium text-n800">Sprints</h1>
+    <a href="{% url 'projects:backlog' space.key %}" class="btn-subtle">Plan sprints on the backlog</a>
+  </div>
+
+  {% for g in groups %}
+    <section class="card mb-4" x-data="{ open: {% if g.sprint.state == 'active' %}true{% else %}false{% endif %} }">
+      <header class="flex cursor-pointer items-center gap-2.5 px-4 py-3" @click="open = !open">
+        <button type="button" class="text-n200 transition-transform" :class="open || '-rotate-90'">
+          {% include 'components/icons.html' with name='chevron-down' class='h-3.5 w-3.5' %}
+        </button>
+        {% include 'components/icons.html' with name='sprint' class='h-4 w-4 shrink-0 text-n300' %}
+        <div class="min-w-0 flex-1">
+          <p class="flex items-center gap-2 text-sm font-semibold text-n800">
+            {{ g.sprint.name }}
+            {% if g.sprint.state == 'active' %}
+              <span class="lozenge lozenge-inprogress">Active</span>
+            {% elif g.sprint.state == 'planned' %}
+              <span class="lozenge lozenge-todo">Planned</span>
+            {% else %}
+              <span class="lozenge lozenge-done">Completed</span>
+            {% endif %}
+          </p>
+          <p class="truncate text-xs text-n200">
+            {% if g.sprint.start_date %}
+              {{ g.sprint.start_date|date:'j M Y' }} – {{ g.sprint.end_date|date:'j M Y' }}
+              {% if g.sprint.completed_at %} · completed {{ g.sprint.completed_at|date:'j M Y' }}{% endif %}
+            {% else %}
+              Not scheduled yet
+            {% endif %}
+            {% if g.sprint.goal %} · {{ g.sprint.goal }}{% endif %}
+          </p>
+        </div>
+        <div class="flex shrink-0 items-center gap-2 text-xs text-n200">
+          <span class="badge" title="Done / total issues">
+            {% include 'components/icons.html' with name='check' class='h-3 w-3 text-green-500' %}
+            {{ g.done_count }}/{{ g.issues|length }}
+          </span>
+          {% if g.points_total %}
+            <span class="badge" title="Done / total story points">{{ g.points_done }}/{{ g.points_total }} pts</span>
+          {% endif %}
+        </div>
+        {% if g.sprint.state == 'active' %}
+          <a href="{% url 'projects:board' space.key %}" class="btn-primary !py-1 text-xs" @click.stop>Open board</a>
+        {% endif %}
+      </header>
+
+      <div x-cloak x-show="open" class="border-t border-n30">
+        <ul class="divide-y divide-n30">
+          {% for issue in g.issues %}
+            <li class="flex items-center gap-2 px-4 py-1.5 hover:bg-n10">
+              {% include 'components/icons.html' with name=issue.issue_type class='h-4 w-4 shrink-0' %}
+              <a href="{% url 'projects:browse' issue.key %}"
+                 class="w-[4.5rem] shrink-0 text-xs font-medium text-n200 hover:text-blue-500 hover:underline">{{ issue.key }}</a>
+              <span class="min-w-0 flex-1 truncate text-sm {% if issue.is_done %}text-n200 line-through{% else %}text-n800{% endif %}">{{ issue.summary }}</span>
+              {% if issue.epic %}
+                <span class="lozenge hidden lg:inline-flex"
+                      style="background-color: {{ issue.epic.epic_color }}22; color: {{ issue.epic.epic_color }}">
+                  {{ issue.epic.summary|truncatechars:20 }}
+                </span>
+              {% endif %}
+              <span class="lozenge {{ issue.status.lozenge_class }}">{{ issue.status.name }}</span>
+              <span class="badge w-7 justify-center {% if issue.story_points is None %}invisible{% endif %}">{{ issue.story_points|default:'–' }}</span>
+              {% include 'components/avatar.html' with u=issue.assignee %}
+            </li>
+          {% empty %}
+            <li class="px-4 py-3 text-sm italic text-n100">
+              {% if g.sprint.state == 'completed' %}No issues finished in this sprint.{% else %}No issues yet — drag some in from the backlog.{% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+        {% if g.carried_over %}
+          <p class="border-t border-n30 px-4 py-2 text-xs text-n200">
+            {{ g.carried_over }} issue{{ g.carried_over|pluralize }} left this sprint before or at completion
+            (rolled over to the backlog or another sprint).
+          </p>
+        {% endif %}
+      </div>
+    </section>
+  {% empty %}
+    <div class="card flex flex-col items-center gap-3 p-12 text-center">
+      <span class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-500">
+        {% include 'components/icons.html' with name='sprint' class='h-6 w-6' %}
+      </span>
+      <h2 class="text-lg font-medium text-n800">No sprints yet</h2>
+      <p class="max-w-md text-sm text-n200">Create a sprint on the backlog, drag issues in, and start it — completed sprints will collect here as history.</p>
+      <a href="{% url 'projects:backlog' space.key %}" class="btn-primary mt-2">Go to backlog</a>
+    </div>
+  {% endfor %}
+</main>
+{% endblock %}
