@@ -3,17 +3,20 @@
 {% block title %}{{ diagram.title }} — draw.io — AtlasHub{% endblock %}
 
 {% block body %}
-<div class="flex h-[calc(100vh-3.5rem)] flex-col">
-  <div class="flex items-center gap-3 border-b border-n30 bg-white px-4 py-2">
+{# Full-window editor: covers the topnav so draw.io gets the whole viewport. #}
+<div class="fixed inset-0 z-[60] flex flex-col bg-white">
+  <div class="flex h-12 shrink-0 items-center gap-3 border-b border-n30 bg-white px-3">
     <a href="{% url 'wiki:page' space.key page.slug %}" class="btn-ghost !py-1 text-xs">
-      {% include 'components/icons.html' with name='arrow-left' class='h-3.5 w-3.5' %} Back to “{{ page.title }}”
+      {% include 'components/icons.html' with name='arrow-left' class='h-3.5 w-3.5' %} {{ page.title }}
     </a>
     <input id="diagram-title" value="{{ diagram.title }}" maxlength="200"
            class="input max-w-xs !py-1 text-sm" placeholder="Diagram title">
-    <p class="ml-auto text-xs text-n200">Use the editor's <b>Save</b> button — it stores the diagram and returns to the page.</p>
+    <span id="save-state" class="text-xs text-n200"></span>
+    <p class="ml-auto hidden text-xs text-n200 md:block">
+      <b>Save</b> stores the diagram and keeps editing · <b>Save & Exit</b> / <b>Exit</b> returns to the page.
+    </p>
   </div>
-  <iframe id="drawio" title="draw.io editor" class="w-full flex-1 border-0"
-          src="https://embed.diagrams.net/?embed=1&proto=json&spin=1&ui=atlas&libraries=1"></iframe>
+  <iframe id="drawio" title="draw.io editor" class="w-full flex-1 border-0"></iframe>
 </div>
 
 {{ diagram.xml|json_script:'diagram-xml' }}
@@ -23,7 +26,19 @@
     const SAVE_URL = '{% url "wiki:diagram_save" space.key diagram.id %}';
     const BACK_URL = '{% url "wiki:page" space.key page.slug %}';
     const frame = document.getElementById('drawio');
+    const saveState = document.getElementById('save-state');
     let latestXml = initialXml || '';
+    let exitAfterSave = false;
+
+    // Full draw.io interface: menubar + shape libraries + format panel
+    // (ui=kennedy is the complete default theme), with both Save and
+    // Save & Exit buttons. Follows AtlasHub's dark mode.
+    const params = new URLSearchParams({
+      embed: '1', proto: 'json', spin: '1',
+      ui: 'kennedy', libraries: '1', format: '1', saveAndExit: '1',
+    });
+    if (document.documentElement.classList.contains('dark')) params.set('dark', '1');
+    frame.src = `https://embed.diagrams.net/?${params}`;
 
     window.addEventListener('message', async (evt) => {
       if (evt.origin !== 'https://embed.diagrams.net') return;
@@ -34,21 +49,32 @@
         frame.contentWindow.postMessage(JSON.stringify({ action: 'load', xml: latestXml }), '*');
       } else if (msg.event === 'save') {
         latestXml = msg.xml;
+        exitAfterSave = !!msg.exit;
+        saveState.textContent = 'Saving…';
         frame.contentWindow.postMessage(
           JSON.stringify({ action: 'export', format: 'svg', xml: latestXml }), '*');
       } else if (msg.event === 'export') {
         const svg = await (await fetch(msg.data)).text();
-        const params = new URLSearchParams();
-        params.append('xml', latestXml);
-        params.append('svg', svg);
-        params.append('title', document.getElementById('diagram-title').value);
+        const body = new URLSearchParams();
+        body.append('xml', latestXml);
+        body.append('svg', svg);
+        body.append('title', document.getElementById('diagram-title').value);
         const resp = await fetch(SAVE_URL, {
           method: 'POST',
           headers: { 'X-CSRFToken': csrfToken() },
-          body: params,
+          body,
         });
-        if (resp.ok) window.location = BACK_URL;
-        else alert('Saving the diagram failed — please try again.');
+        if (!resp.ok) {
+          saveState.textContent = '';
+          alert('Saving the diagram failed — please try again.');
+          return;
+        }
+        if (exitAfterSave) {
+          window.location = BACK_URL;
+        } else {
+          saveState.textContent = 'Saved ✓';
+          setTimeout(() => { saveState.textContent = ''; }, 2500);
+        }
       } else if (msg.event === 'exit') {
         window.location = BACK_URL;
       }
