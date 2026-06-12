@@ -1,0 +1,22 @@
+{% extends 'projects/space_base.html' %}
+
+{% block title %}Capacity — {{ sprint.name }} — {{ space.name }}{% endblock %}
+
+{% block space_content %}
+<main class="mx-auto w-full max-w-4xl px-6 py-5">
+  <nav class="mb-1 text-xs text-n200">
+    <a href="{% url 'projects:sprints' space.key %}" class="hover:underline">Sprints</a>
+    <span class="mx-1">/</span>
+    <span>{{ sprint.name }}</span>
+  </nav>
+  <h1 class="mb-1 text-xl font-medium text-n800">Capacity planner — {{ sprint.name }}</h1>
+  <p class="mb-6 text-sm text-n200">
+    Each member's capacity =
+    <span class="font-medium">base points ÷ working days × (working days − public holidays − leave days) × role factor</span>
+    (team lead ×0.8, tech lead ×0.7). Allocated is the story points of sprint
+    issues assigned to them — it should fit inside their capacity.
+  </p>
+
+  {% include 'projects/partials/capacity_table.html' %}
+</main>
+{% endblock %}

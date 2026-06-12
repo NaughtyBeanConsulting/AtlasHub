@@ -1,0 +1,21 @@
+{% extends 'projects/space_base.html' %}
+
+{% block title %}Retrospective — {{ sprint.name }} — {{ space.name }}{% endblock %}
+
+{% block space_content %}
+<main class="mx-auto w-full max-w-5xl px-6 py-5">
+  <nav class="mb-1 text-xs text-n200">
+    <a href="{% url 'projects:sprints' space.key %}" class="hover:underline">Sprints</a>
+    <span class="mx-1">/</span>
+    <span>{{ sprint.name }}</span>
+  </nav>
+  <h1 class="mb-1 text-xl font-medium text-n800">Retrospective — {{ sprint.name }}</h1>
+  <p class="mb-6 text-sm text-n200">
+    {{ sprint.start_date|date:'j M' }} – {{ sprint.end_date|date:'j M Y' }}
+    {% if sprint.goal %} · Goal: {{ sprint.goal }}{% endif %}
+    · Action items can be promoted straight to backlog tasks.
+  </p>
+
+  {% include 'projects/partials/retro_board.html' %}
+</main>
+{% endblock %}

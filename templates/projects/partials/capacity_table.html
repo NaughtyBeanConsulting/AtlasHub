@@ -1,0 +1,110 @@
+<div id="capacity-table">
+  <div class="mb-4 flex flex-wrap items-end gap-4">
+    <div>
+      <p class="label">Working days in sprint</p>
+      <p class="text-sm font-medium text-n800">{{ overview.working_days }}
+        <span class="font-normal text-n200">(weekdays{% if sprint.start_date %} {{ sprint.start_date|date:'j M' }} – {{ sprint.end_date|date:'j M' }}{% else %} — default until the sprint has dates{% endif %})</span>
+      </p>
+    </div>
+    <div>
+      <label class="label" for="cap-holidays">Public holidays</label>
+      {% if can_manage %}
+        <input id="cap-holidays" type="number" name="public_holidays" min="0" max="20"
+               value="{{ sprint.public_holidays }}" class="input w-24"
+               hx-post="{% url 'projects:capacity_settings' space.key sprint.id %}"
+               hx-trigger="change" hx-target="#capacity-table" hx-swap="outerHTML">
+      {% else %}
+        <p class="text-sm font-medium text-n800">{{ sprint.public_holidays }}</p>
+      {% endif %}
+    </div>
+    <div class="ml-auto">
+      {% if overview.fits %}
+        <span class="lozenge lozenge-done">Allocation fits capacity</span>
+      {% else %}
+        <span class="lozenge bg-red-50 text-red-600">Over capacity</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card overflow-x-auto">
+    <table class="w-full text-left text-sm">
+      <thead>
+        <tr class="border-b border-n30 text-[11px] font-bold uppercase tracking-wide text-n200">
+          <th class="px-4 py-2.5">Member</th>
+          <th class="px-2 py-2.5">Role</th>
+          <th class="px-2 py-2.5">Base pts</th>
+          <th class="px-2 py-2.5">Leave days</th>
+          <th class="px-2 py-2.5" title="working days − public holidays − leave">Eff. days</th>
+          <th class="px-2 py-2.5">Capacity</th>
+          <th class="px-2 py-2.5">Allocated</th>
+          <th class="px-4 py-2.5">Δ</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-n30">
+        {% for row in overview.rows %}
+          <tr class="{% if row.over %}bg-red-50/60{% endif %}">
+            <td class="px-4 py-2">
+              <span class="flex items-center gap-2">
+                {% include 'components/avatar.html' with u=row.user %}
+                <span class="truncate font-medium text-n800">{{ row.user.display_name }}</span>
+                <input type="hidden" name="user" value="{{ row.user.pk }}">
+              </span>
+            </td>
+            {% if can_manage %}
+              <td class="px-2 py-2">
+                <select name="role" class="field-select"
+                        hx-post="{% url 'projects:capacity_row' space.key sprint.id %}"
+                        hx-include="closest tr" hx-target="#capacity-table" hx-swap="outerHTML">
+                  {% for value, label in roles %}
+                    <option value="{{ value }}" {% if row.cap.role == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </td>
+              <td class="px-2 py-2">
+                <input type="number" name="base_points" min="0" max="200" value="{{ row.cap.base_points }}"
+                       class="field-select w-16 text-right"
+                       hx-post="{% url 'projects:capacity_row' space.key sprint.id %}"
+                       hx-trigger="change" hx-include="closest tr"
+                       hx-target="#capacity-table" hx-swap="outerHTML">
+              </td>
+              <td class="px-2 py-2">
+                <input type="number" name="leave_days" min="0" max="30" value="{{ row.cap.leave_days }}"
+                       class="field-select w-16 text-right"
+                       hx-post="{% url 'projects:capacity_row' space.key sprint.id %}"
+                       hx-trigger="change" hx-include="closest tr"
+                       hx-target="#capacity-table" hx-swap="outerHTML">
+              </td>
+            {% else %}
+              <td class="px-2 py-2 text-n500">{{ row.cap.get_role_display }}</td>
+              <td class="px-2 py-2 text-n500">{{ row.cap.base_points }}</td>
+              <td class="px-2 py-2 text-n500">{{ row.cap.leave_days }}</td>
+            {% endif %}
+            <td class="px-2 py-2 text-n500">{{ row.effective_days }}</td>
+            <td class="px-2 py-2 font-semibold text-n800">{{ row.capacity }}</td>
+            <td class="px-2 py-2 font-semibold {% if row.over %}text-red-500{% else %}text-n800{% endif %}">{{ row.allocated }}</td>
+            <td class="px-4 py-2 text-xs font-bold {% if row.over %}text-red-500{% else %}text-green-500{% endif %}">
+              {{ row.delta }}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8" class="px-4 py-6 text-center text-sm italic text-n100">No members in this space yet.</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="border-t-2 border-n40 text-sm font-semibold text-n800">
+          <td class="px-4 py-2.5" colspan="5">Team total</td>
+          <td class="px-2 py-2.5">{{ overview.total_capacity }}</td>
+          <td class="px-2 py-2.5 {% if not overview.fits %}text-red-500{% endif %}">{{ overview.total_allocated }}</td>
+          <td class="px-4 py-2.5"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  {% if overview.unassigned %}
+    <p class="mt-3 text-xs text-n200">
+      ⚠ {{ overview.unassigned }} story point{{ overview.unassigned|pluralize }} in this sprint
+      {% if overview.unassigned == 1 %}is{% else %}are{% endif %} unassigned — they count against the team total.
+    </p>
+  {% endif %}
+</div>

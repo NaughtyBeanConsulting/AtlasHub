@@ -16,6 +16,8 @@
         {% endif %}
         <span class="badge">{{ sg.issues|length }} issue{{ sg.issues|length|pluralize }}</span>
         <span class="ml-auto"></span>
+        <a href="{% url 'projects:capacity' space.key sg.sprint.id %}" class="btn-ghost !py-1 text-xs"
+           title="Capacity planner">Capacity</a>
         {% if request.space_role == 'admin' %}
           {% if sg.sprint.state == 'planned' and not has_active_sprint %}
             <button type="button" @click="showStart = true" class="btn-primary !py-1 text-xs">Start sprint</button>

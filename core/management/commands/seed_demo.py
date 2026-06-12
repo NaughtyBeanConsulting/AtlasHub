@@ -11,7 +11,10 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
 from core.models import Space, SpaceMembership
-from projects.models import AcceptanceCriterion, Comment, Issue, Label, Sprint
+from projects.models import (
+    AcceptanceCriterion, Comment, Issue, Label, RetroItem, Sprint,
+    SprintCapacity,
+)
 from projects.services import record_activity
 from wiki.models import Diagram, Page, PageComment, PageVersion, unique_slug
 
@@ -122,7 +125,25 @@ class Command(BaseCommand):
             state=Sprint.STATE_ACTIVE,
             start_date=today - datetime.timedelta(days=3),
             end_date=today + datetime.timedelta(days=11),
+            public_holidays=1,
         )
+
+        # Capacity planner rows for the active sprint
+        SprintCapacity.objects.create(sprint=sprint2, user=thandi,
+                                      base_points=10, leave_days=1, role='tech_lead')
+        SprintCapacity.objects.create(sprint=sprint2, user=pieter, base_points=8)
+        SprintCapacity.objects.create(sprint=sprint2, user=demo,
+                                      base_points=6, role='team_lead')
+
+        # Retrospective for the completed sprint
+        for category, text, author in [
+            ('went_well', 'Paystack webhooks were rock solid after the idempotency fix.', thandi),
+            ('went_well', 'Guest checkout shipped two days early.', pieter),
+            ('improve', 'Too many review comments landed on the last day.', thandi),
+            ('action', 'Agree a mid-sprint review checkpoint with the team.', demo),
+        ]:
+            RetroItem.objects.create(sprint=sprint1, category=category,
+                                     text=text, author=author)
 
         # Sprint 1 (completed history)
         new_issue(issue_type='story', summary='Paystack integration for storefront payments',
@@ -235,12 +256,13 @@ class Command(BaseCommand):
         )
         architecture.body_md += f'{diagram.fence}\n'
         architecture.save(update_fields=['body_md'])
-        new_page('Payments flow', (
+        payments_flow = new_page('Payments flow', (
             '```mermaid\nsequenceDiagram;\n  Customer->>API: Pay order;\n'
             '  API->>Paystack: Charge stored card;\n  Paystack-->>API: Webhook (success);\n'
             '  API->>Customer: WhatsApp confirmation;\n```\n\n'
             'Charges fall back across stored cards; webhooks reconcile final state.'
         ), parent=architecture)
+        story.linked_pages.add(payments_flow)  # Hub page ↔ Atlas story link demo
         runbooks = new_page('Runbooks', 'Operational checklists for the platform.', position=2)
         new_page('Deploy checklist', (
             '1. `./build_tailwind.sh`\n2. `python manage.py migrate`\n'

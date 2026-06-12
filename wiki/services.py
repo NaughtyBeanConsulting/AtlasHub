@@ -45,6 +45,24 @@ def visible_page_ids(space, role):
     user_rank = SpaceMembership.ROLE_RANK[role]
     return {pid for pid, need in required_view_ranks(space).items() if user_rank >= need}
 
+
+def filter_pages_for_user(user, pages, limit=None):
+    """Apply page-level security (restrictions + drafts) to pages that may
+    span several spaces. `pages` should be select_related('space')."""
+    ranks, needs = {}, {}
+    out = []
+    for page in pages:
+        space = page.space
+        if space.pk not in ranks:
+            role = space.role_for(user)
+            ranks[space.pk] = SpaceMembership.ROLE_RANK[role] if role else -1
+            needs[space.pk] = required_view_ranks(space)
+        if ranks[space.pk] >= needs[space.pk].get(page.pk, 99):
+            out.append(page)
+            if limit and len(out) >= limit:
+                break
+    return out
+
 # ```drawio:<id>``` fences are swapped for a token BEFORE markdown runs
 # (python-markdown won't treat "drawio:<id>" as a fence language), and the
 # token — a span nh3's allow-list keeps — is replaced with the embed AFTER

@@ -1,4 +1,23 @@
 {% comment %}Shared issue detail. layout='page' → two columns; 'panel' → stacked.{% endcomment %}
+{% if issue.archived %}
+  <div class="mb-4 flex items-center gap-3 rounded-[3px] border-l-4 border-yellow-400 bg-yellow-50 px-4 py-2.5">
+    <p class="flex-1 text-sm text-n800">
+      <b>Archived</b> — hidden from the backlog, board, timeline and search.
+    </p>
+    {% if request.space_role == 'admin' %}
+      <form method="post" action="{% url 'projects:issue_archive' issue.key %}">
+        {% csrf_token %}
+        <input type="hidden" name="state" value="restore">
+        <button type="submit" class="btn-primary !py-1 text-xs">Restore</button>
+      </form>
+      <form method="post" action="{% url 'projects:issue_delete' issue.key %}"
+            onsubmit="return confirm('Permanently delete {{ issue.key }}? This cannot be undone.')">
+        {% csrf_token %}
+        <button type="submit" class="btn-danger !py-1 text-xs">Delete forever</button>
+      </form>
+    {% endif %}
+  </div>
+{% endif %}
 {% if layout == 'page' %}
   <div class="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
     <div class="min-w-0">
@@ -10,6 +29,7 @@
       {% elif issue.issue_type != 'subtask' %}
         {% include 'projects/partials/subtask_list.html' %}
       {% endif %}
+      {% include 'projects/partials/linked_pages.html' %}
       {% include 'projects/partials/detail_tabs.html' %}
     </div>
     <div>{% include 'projects/partials/detail_fields.html' %}</div>
@@ -25,6 +45,7 @@
     {% elif issue.issue_type != 'subtask' %}
       {% include 'projects/partials/subtask_list.html' %}
     {% endif %}
+    {% include 'projects/partials/linked_pages.html' %}
     {% include 'projects/partials/detail_tabs.html' %}
   </div>
 {% endif %}

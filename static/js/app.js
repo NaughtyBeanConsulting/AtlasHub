@@ -103,6 +103,31 @@ document.addEventListener('alpine:init', () => {
     },
   }));
 
+  // Hub-page autocomplete on the issue detail ("Link a Hub page…").
+  Alpine.data('pageLink', (searchUrl, addUrl, layout) => ({
+    results: [],
+    show: false,
+    search() {
+      const q = this.$refs.q.value.trim();
+      fetch(`${searchUrl}?q=${encodeURIComponent(q)}`)
+        .then((r) => r.json())
+        .then((data) => {
+          this.results = data.results;
+          this.show = this.results.length > 0;
+        })
+        .catch(() => { this.show = false; });
+    },
+    link(item) {
+      this.show = false;
+      this.$refs.q.value = '';
+      htmx.ajax('POST', addUrl, {
+        target: '#linked-pages',
+        swap: 'outerHTML',
+        values: { page: item.id, layout },
+      });
+    },
+  }));
+
   // @mention autocomplete for textareas (x-ref="ta" inside the component).
   Alpine.data('mentionBox', (url) => ({
     results: [],

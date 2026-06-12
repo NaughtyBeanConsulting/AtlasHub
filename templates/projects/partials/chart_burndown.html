@@ -1,0 +1,20 @@
+{% comment %}Expects `chart` from projects.reports.burndown().{% endcomment %}
+<svg viewBox="0 0 {{ chart.width }} {{ chart.height }}" class="w-full max-w-xl" role="img"
+     aria-label="Burndown: {{ chart.total }} points down to {{ chart.remaining }}">
+  <line x1="{{ chart.pad }}" y1="{{ chart.baseline_y }}" x2="{{ chart.width|add:'-28' }}" y2="{{ chart.baseline_y }}"
+        class="stroke-n40" stroke-width="1"/>
+  <line x1="{{ chart.pad }}" y1="{{ chart.top_y }}" x2="{{ chart.width|add:'-28' }}" y2="{{ chart.top_y }}"
+        class="stroke-n30" stroke-width="1" stroke-dasharray="2 4"/>
+  <polyline points="{{ chart.ideal_points }}" fill="none" class="stroke-n50"
+            stroke-width="1.5" stroke-dasharray="5 4"/>
+  <polyline points="{{ chart.actual_points }}" fill="none" class="stroke-blue-500"
+            stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+  <text x="{{ chart.pad }}" y="{{ chart.top_y|add:'-6' }}" class="fill-n200" font-size="10">{{ chart.total }} pts</text>
+  <text x="{{ chart.pad }}" y="{{ chart.baseline_y|add:'14' }}" class="fill-n100" font-size="9">{{ chart.start|date:'j M' }}</text>
+  <text x="{{ chart.width|add:'-28' }}" y="{{ chart.baseline_y|add:'14' }}" text-anchor="end" class="fill-n100" font-size="9">{{ chart.end|date:'j M' }}</text>
+</svg>
+<p class="mt-1 flex items-center gap-4 text-[11px] text-n200">
+  <span class="flex items-center gap-1.5"><span class="h-0.5 w-5 rounded bg-blue-500"></span> Actual remaining</span>
+  <span class="flex items-center gap-1.5"><span class="h-0.5 w-5 rounded bg-n50"></span> Ideal</span>
+  {% if chart.remaining %}<span>{{ chart.remaining }} pt{{ chart.remaining|pluralize }} left at close</span>{% endif %}
+</p>

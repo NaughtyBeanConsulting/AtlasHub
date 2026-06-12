@@ -2,8 +2,21 @@ from django.contrib import admin
 from unfold.admin import ModelAdmin, TabularInline
 
 from .models import (
-    AcceptanceCriterion, Activity, Comment, Issue, Label, Sprint, Status,
+    AcceptanceCriterion, Activity, Comment, Issue, Label, RetroItem, Sprint,
+    SprintCapacity, Status,
 )
+
+
+@admin.register(SprintCapacity)
+class SprintCapacityAdmin(ModelAdmin):
+    list_display = ['sprint', 'user', 'base_points', 'leave_days', 'role']
+    list_filter = ['sprint__space', 'role']
+
+
+@admin.register(RetroItem)
+class RetroItemAdmin(ModelAdmin):
+    list_display = ['sprint', 'category', 'text', 'author', 'linked_issue']
+    list_filter = ['category', 'sprint__space']
 
 
 @admin.register(Status)

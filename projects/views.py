@@ -12,10 +12,11 @@ from core.decorators import space_required
 from core.models import Space, SpaceMembership
 
 from .models import (
-    EPIC_COLORS, AcceptanceCriterion, Activity, Comment, Issue, Label, Sprint,
-    Status,
+    EPIC_COLORS, AcceptanceCriterion, Activity, Comment, Issue, Label,
+    RetroItem, Sprint, SprintCapacity, Status,
 )
 from .notifications import notify_issue_assigned, notify_mentions, notify_sprint_event
+from .reports import burndown, capacity_overview, velocity
 from .services import record_activity
 
 
@@ -39,9 +40,9 @@ def project_home(request, space):
 
 def _backlog_groups(space):
     """Unscheduled issues grouped by epic (epics in rank order, 'No epic' last)."""
-    epics = list(space.issues.filter(issue_type=Issue.TYPE_EPIC))
+    epics = list(space.issues.filter(issue_type=Issue.TYPE_EPIC, archived=False))
     issues = (
-        space.issues.filter(sprint__isnull=True)
+        space.issues.filter(sprint__isnull=True, archived=False)
         .exclude(issue_type__in=[Issue.TYPE_EPIC, Issue.TYPE_SUBTASK])
         .select_related('status', 'assignee', 'epic')
     )
@@ -62,7 +63,7 @@ def _open_sprints(space):
         .order_by('-state', 'created_at')  # active first
     )
     issues = (
-        space.issues.filter(sprint__in=sprints)
+        space.issues.filter(sprint__in=sprints, archived=False)
         .exclude(issue_type=Issue.TYPE_SUBTASK)
         .select_related('status', 'assignee', 'epic')
     )
@@ -323,7 +324,7 @@ def sprints(request, space):
         key=lambda s: (state_order[s.state], -(s.completed_at or s.created_at).timestamp()),
     )
     issues = (
-        space.issues.filter(sprint__in=all_sprints)
+        space.issues.filter(sprint__in=all_sprints, archived=False)
         .exclude(issue_type=Issue.TYPE_SUBTASK)
         .select_related('status', 'assignee', 'epic')
     )
@@ -350,8 +351,13 @@ def sprints(request, space):
             'points_total': sum(i.story_points or 0 for i in sprint_issues),
             'points_done': sum(i.story_points or 0 for i in done),
             'carried_over': carried.get(sprint.name, 0) if sprint.state == Sprint.STATE_COMPLETED else 0,
+            'burndown': burndown(sprint) if sprint.state == Sprint.STATE_COMPLETED else None,
         })
-    return render(request, 'projects/sprints.html', {'space': space, 'groups': groups})
+    return render(request, 'projects/sprints.html', {
+        'space': space,
+        'groups': groups,
+        'velocity': velocity(space),
+    })
 
 
 @require_POST
@@ -362,7 +368,7 @@ def sprint_quick_add(request, space):
     if sprint is None:
         return HttpResponseBadRequest('No active sprint.')
     issue = get_object_or_404(
-        Issue, pk=request.POST.get('issue'), space=space, sprint__isnull=True,
+        Issue, pk=request.POST.get('issue'), space=space, sprint__isnull=True, archived=False,
     )
     issue.sprint = sprint
     issue.rank = _next_rank(sprint.issues.all())
@@ -475,6 +481,7 @@ def board(request, space):
     if sprint:
         issues = (
             sprint.issues.exclude(issue_type=Issue.TYPE_SUBTASK)
+            .filter(archived=False)
             .select_related('status', 'assignee', 'epic')
         )
         by_status = {}
@@ -537,8 +544,12 @@ def _get_issue(request, issue_key, min_role=SpaceMembership.ROLE_VIEWER):
 
 
 def _detail_context(request, issue, layout='page'):
+    from wiki.services import filter_pages_for_user
     space = issue.space
     return {
+        'linked_pages': filter_pages_for_user(
+            request.user, issue.linked_pages.select_related('space'),
+        ),
         'issue': issue,
         'space': space,
         'layout': layout,
@@ -546,14 +557,14 @@ def _detail_context(request, issue, layout='page'):
         'statuses': space.statuses.all(),
         'members': space.members.filter(is_active=True),
         'open_sprints': space.sprints.filter(state__in=[Sprint.STATE_PLANNED, Sprint.STATE_ACTIVE]),
-        'epics': space.issues.filter(issue_type=Issue.TYPE_EPIC).exclude(pk=issue.pk),
+        'epics': space.issues.filter(issue_type=Issue.TYPE_EPIC, archived=False).exclude(pk=issue.pk),
         'priorities': Issue.PRIORITY_CHOICES,
-        'subtasks': issue.subtasks.select_related('status', 'assignee'),
+        'subtasks': issue.subtasks.filter(archived=False).select_related('status', 'assignee'),
         'criteria': issue.acceptance_criteria.all(),
         'comments': issue.comments.select_related('author'),
         'label_names': ', '.join(issue.labels.values_list('name', flat=True)),
         'epic_children': (
-            issue.epic_issues.select_related('status', 'assignee')
+            issue.epic_issues.filter(archived=False).select_related('status', 'assignee')
             if issue.issue_type == Issue.TYPE_EPIC else None
         ),
     }
@@ -746,6 +757,244 @@ def subtask_add(request, issue_key):
                   _detail_context(request, issue, layout=request.POST.get('layout', 'page')))
 
 
+# ── Archive / delete (admin only) ────────────────────────────────────────────
+
+@require_POST
+@login_required
+def issue_archive(request, issue_key):
+    issue = _get_issue(request, issue_key, min_role=SpaceMembership.ROLE_ADMIN)
+    archive = request.POST.get('state', 'archive') == 'archive'
+    issue.archived = archive
+    issue.save(update_fields=['archived', 'updated_at'])
+    issue.subtasks.update(archived=archive)  # sub-tasks follow their parent
+    record_activity(issue, request.user, 'archived' if archive else 'restored')
+    if archive:
+        messages.success(request, f'{issue.key} archived — find it under Project archive.')
+    else:
+        messages.success(request, f'{issue.key} restored.')
+    return redirect('projects:browse', issue_key=issue.key)
+
+
+@require_POST
+@login_required
+def issue_delete(request, issue_key):
+    issue = _get_issue(request, issue_key, min_role=SpaceMembership.ROLE_ADMIN)
+    space, key = issue.space, issue.key
+    issue.delete()
+    messages.success(request, f'{key} permanently deleted.')
+    return redirect('projects:backlog', key=space.key)
+
+
+@space_required(space_type=Space.TYPE_SOFTWARE)
+def archive_list(request, space):
+    issues = (
+        space.issues.filter(archived=True)
+        .select_related('status', 'assignee', 'epic')
+        .order_by('-updated_at')
+    )
+    return render(request, 'projects/archive.html', {'space': space, 'issues': issues})
+
+
+# ── Capacity planner ─────────────────────────────────────────────────────────
+
+def _capacity_context(request, space, sprint):
+    return {
+        'space': space,
+        'sprint': sprint,
+        'overview': capacity_overview(sprint),
+        'roles': SprintCapacity.ROLE_CHOICES,
+        'can_manage': request.space_role == SpaceMembership.ROLE_ADMIN,
+    }
+
+
+@space_required(space_type=Space.TYPE_SOFTWARE)
+def capacity(request, space, sprint_id):
+    sprint = get_object_or_404(Sprint, pk=sprint_id, space=space)
+    return render(request, 'projects/capacity.html', _capacity_context(request, space, sprint))
+
+
+@require_POST
+@space_required(role=SpaceMembership.ROLE_ADMIN, space_type=Space.TYPE_SOFTWARE)
+def capacity_row(request, space, sprint_id):
+    sprint = get_object_or_404(Sprint, pk=sprint_id, space=space)
+    member = get_object_or_404(space.members, pk=request.POST.get('user'))
+
+    def clamped(name, default, top):
+        try:
+            return max(0, min(top, int(request.POST.get(name, default))))
+        except (TypeError, ValueError):
+            return default
+
+    role = request.POST.get('role', SprintCapacity.ROLE_NONE)
+    if role not in SprintCapacity.ROLE_FACTOR:
+        role = SprintCapacity.ROLE_NONE
+    SprintCapacity.objects.update_or_create(
+        sprint=sprint, user=member,
+        defaults={
+            'base_points': clamped('base_points', 10, 200),
+            'leave_days': clamped('leave_days', 0, 30),
+            'role': role,
+        },
+    )
+    return render(request, 'projects/partials/capacity_table.html',
+                  _capacity_context(request, space, sprint))
+
+
+@require_POST
+@space_required(role=SpaceMembership.ROLE_ADMIN, space_type=Space.TYPE_SOFTWARE)
+def capacity_settings(request, space, sprint_id):
+    sprint = get_object_or_404(Sprint, pk=sprint_id, space=space)
+    try:
+        sprint.public_holidays = max(0, min(20, int(request.POST.get('public_holidays', 0))))
+    except (TypeError, ValueError):
+        pass
+    else:
+        sprint.save(update_fields=['public_holidays'])
+    return render(request, 'projects/partials/capacity_table.html',
+                  _capacity_context(request, space, sprint))
+
+
+# ── Retrospectives ───────────────────────────────────────────────────────────
+
+def _retro_context(request, space, sprint):
+    items = {category: [] for category, _ in RetroItem.CATEGORY_CHOICES}
+    for item in sprint.retro_items.select_related('author', 'linked_issue'):
+        items[item.category].append(item)
+    return {
+        'space': space,
+        'sprint': sprint,
+        'columns': [(value, label, items[value]) for value, label in RetroItem.CATEGORY_CHOICES],
+        'can_edit': SpaceMembership.ROLE_RANK[request.space_role]
+        >= SpaceMembership.ROLE_RANK[SpaceMembership.ROLE_MEMBER],
+    }
+
+
+def _completed_sprint(space, sprint_id):
+    return get_object_or_404(Sprint, pk=sprint_id, space=space, state=Sprint.STATE_COMPLETED)
+
+
+@space_required(space_type=Space.TYPE_SOFTWARE)
+def retro(request, space, sprint_id):
+    sprint = _completed_sprint(space, sprint_id)
+    return render(request, 'projects/retro.html', _retro_context(request, space, sprint))
+
+
+@require_POST
+@space_required(role=SpaceMembership.ROLE_MEMBER, space_type=Space.TYPE_SOFTWARE)
+def retro_add(request, space, sprint_id):
+    sprint = _completed_sprint(space, sprint_id)
+    category = request.POST.get('category')
+    text = request.POST.get('text', '').strip()
+    if category in dict(RetroItem.CATEGORY_CHOICES) and text:
+        RetroItem.objects.create(
+            sprint=sprint, category=category, text=text[:500], author=request.user,
+        )
+    return render(request, 'projects/partials/retro_board.html',
+                  _retro_context(request, space, sprint))
+
+
+@require_POST
+@space_required(role=SpaceMembership.ROLE_MEMBER, space_type=Space.TYPE_SOFTWARE)
+def retro_delete(request, space, sprint_id, item_id):
+    sprint = _completed_sprint(space, sprint_id)
+    item = get_object_or_404(RetroItem, pk=item_id, sprint=sprint)
+    if item.author_id == request.user.id or request.space_role == SpaceMembership.ROLE_ADMIN:
+        item.delete()
+    return render(request, 'projects/partials/retro_board.html',
+                  _retro_context(request, space, sprint))
+
+
+@require_POST
+@space_required(role=SpaceMembership.ROLE_MEMBER, space_type=Space.TYPE_SOFTWARE)
+def retro_to_issue(request, space, sprint_id, item_id):
+    """Promote an action item to a backlog task."""
+    sprint = _completed_sprint(space, sprint_id)
+    item = get_object_or_404(
+        RetroItem, pk=item_id, sprint=sprint,
+        category=RetroItem.CATEGORY_ACTION, linked_issue__isnull=True,
+    )
+    issue = Issue.objects.create_issue(
+        space=space,
+        issue_type=Issue.TYPE_TASK,
+        summary=item.text[:255],
+        description_md=f'Action item from the “{sprint.name}” retrospective.',
+        status=_first_status(space),
+        reporter=request.user,
+        rank=_next_rank(space.issues.filter(sprint__isnull=True, epic=None)),
+    )
+    record_activity(issue, request.user, 'created')
+    item.linked_issue = issue
+    item.save(update_fields=['linked_issue'])
+    return render(request, 'projects/partials/retro_board.html',
+                  _retro_context(request, space, sprint))
+
+
+# ── Hub page links ───────────────────────────────────────────────────────────
+
+def _visible_linked_pages(request, issue):
+    from wiki.services import filter_pages_for_user
+    return filter_pages_for_user(
+        request.user, issue.linked_pages.select_related('space'),
+    )
+
+
+@login_required
+def link_search(request, issue_key):
+    """JSON autocomplete: Hub pages the user may see, not yet linked."""
+    from django.http import JsonResponse
+
+    from wiki.models import Page
+    from wiki.services import filter_pages_for_user
+
+    issue = _get_issue(request, issue_key, min_role=SpaceMembership.ROLE_MEMBER)
+    q = request.GET.get('q', '').strip()
+    candidates = (
+        Page.objects.filter(space__in=request.user.spaces.filter(space_type=Space.TYPE_WIKI))
+        .exclude(pk__in=issue.linked_pages.values_list('pk', flat=True))
+        .select_related('space')
+        .order_by('-updated_at')
+    )
+    if q:
+        candidates = candidates.filter(title__icontains=q)
+    pages = filter_pages_for_user(request.user, candidates[:40], limit=8)
+    return JsonResponse({'results': [
+        {'id': p.pk, 'title': p.title, 'space': p.space.key} for p in pages
+    ]})
+
+
+@require_POST
+@login_required
+def link_add(request, issue_key):
+    from wiki.models import Page
+    from wiki.services import filter_pages_for_user
+
+    issue = _get_issue(request, issue_key, min_role=SpaceMembership.ROLE_MEMBER)
+    page = get_object_or_404(
+        Page.objects.select_related('space'), pk=request.POST.get('page'),
+    )
+    # The linker must be able to SEE the page they're linking.
+    if page.space.role_for(request.user) is None or not filter_pages_for_user(request.user, [page]):
+        raise Http404
+    issue.linked_pages.add(page)
+    record_activity(issue, request.user, 'linked page', '', page.title)
+    context = _detail_context(request, issue, layout=request.POST.get('layout', 'page'))
+    context['linked_pages'] = _visible_linked_pages(request, issue)
+    return render(request, 'projects/partials/linked_pages.html', context)
+
+
+@require_POST
+@login_required
+def link_remove(request, issue_key, page_id):
+    issue = _get_issue(request, issue_key, min_role=SpaceMembership.ROLE_MEMBER)
+    page = issue.linked_pages.filter(pk=page_id).first()
+    if page:
+        issue.linked_pages.remove(page)
+        record_activity(issue, request.user, 'unlinked page', page.title, '')
+    context = _detail_context(request, issue, layout=request.POST.get('layout', 'page'))
+    context['linked_pages'] = _visible_linked_pages(request, issue)
+    return render(request, 'projects/partials/linked_pages.html', context)
+
+
 @login_required
 def issue_activity(request, issue_key):
     issue = _get_issue(request, issue_key)
@@ -788,7 +1037,7 @@ def timeline(request, space):
         epic_sprints = {}
         epic_issue_bars = {}
         issues_in_sprints = (
-            space.issues.filter(epic__isnull=False, sprint__in=sprints)
+            space.issues.filter(epic__isnull=False, sprint__in=sprints, archived=False)
             .exclude(issue_type=Issue.TYPE_SUBTASK)
             .select_related('epic', 'sprint', 'status', 'assignee')
         )
@@ -800,7 +1049,7 @@ def timeline(request, space):
                 'start': col(sprint.start_date),
                 'span': (sprint.end_date - sprint.start_date).days + 1,
             })
-        for epic in space.issues.filter(issue_type=Issue.TYPE_EPIC):
+        for epic in space.issues.filter(issue_type=Issue.TYPE_EPIC, archived=False):
             in_sprints = epic_sprints.get(epic)
             if not in_sprints:
                 continue
@@ -821,7 +1070,7 @@ def timeline(request, space):
             'sprint_bars': sprint_bars,
             'epic_bars': epic_bars,
             'unscheduled_epics': [
-                e for e in space.issues.filter(issue_type=Issue.TYPE_EPIC)
+                e for e in space.issues.filter(issue_type=Issue.TYPE_EPIC, archived=False)
                 if e not in epic_sprints
             ],
             'today_pct': (

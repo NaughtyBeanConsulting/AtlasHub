@@ -1,0 +1,15 @@
+{% comment %}Expects `chart` from projects.reports.velocity().{% endcomment %}
+<svg viewBox="0 0 {{ chart.width }} {{ chart.height }}" class="w-full max-w-xl" role="img"
+     aria-label="Velocity over the last {{ chart.bars|length }} sprints, average {{ chart.avg }} points">
+  <line x1="{{ chart.pad }}" y1="{{ chart.baseline_y }}" x2="{{ chart.width|add:'-28' }}" y2="{{ chart.baseline_y }}"
+        class="stroke-n40" stroke-width="1"/>
+  {% for bar in chart.bars %}
+    <rect x="{{ bar.x }}" y="{{ bar.y }}" width="{{ bar.w }}" height="{{ bar.h }}" rx="2"
+          class="fill-blue-500"><title>{{ bar.sprint.name }}: {{ bar.points }} pts</title></rect>
+    <text x="{{ bar.cx }}" y="{{ bar.y|add:'-5' }}" text-anchor="middle" class="fill-n500" font-size="10">{{ bar.points }}</text>
+    <text x="{{ bar.cx }}" y="{{ chart.baseline_y|add:'14' }}" text-anchor="middle" class="fill-n100" font-size="9">{{ bar.sprint.name|truncatechars:14 }}</text>
+  {% endfor %}
+  <line x1="{{ chart.pad }}" y1="{{ chart.avg_y }}" x2="{{ chart.width|add:'-28' }}" y2="{{ chart.avg_y }}"
+        class="stroke-green-500" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="{{ chart.width|add:'-28' }}" y="{{ chart.avg_y|add:'-5' }}" text-anchor="end" class="fill-n400" font-size="10">avg {{ chart.avg }}</text>
+</svg>

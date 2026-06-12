@@ -75,6 +75,9 @@ class Sprint(models.Model):
     state = models.CharField(max_length=10, choices=STATE_CHOICES, default=STATE_PLANNED)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
+    # Public holidays falling inside the sprint — everyone loses these days
+    # in the capacity planner.
+    public_holidays = models.PositiveSmallIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
 
@@ -93,6 +96,9 @@ class Sprint(models.Model):
 
 
 class IssueManager(models.Manager):
+    def active(self):
+        return self.filter(archived=False)
+
     def create_issue(self, *, space, **fields):
         """Create an issue with a race-safe sequential key (CLIC-1, CLIC-2…):
         the Space row is locked while its counter increments."""
@@ -163,6 +169,11 @@ class Issue(models.Model):
         Sprint, null=True, blank=True, on_delete=models.SET_NULL, related_name='issues',
     )
     labels = models.ManyToManyField(Label, blank=True, related_name='issues')
+    # Hub pages documenting this issue (filtered by page-level security on display).
+    linked_pages = models.ManyToManyField('wiki.Page', blank=True, related_name='linked_issues')
+    # Archived issues are hidden everywhere (backlog, board, timeline, search,
+    # reports) but kept for the record; admins can restore or hard-delete.
+    archived = models.BooleanField(default=False)
     epic_color = models.CharField(max_length=7, default=EPIC_COLORS[0])
     # Display order. Contexts are disjoint: the backlog orders within an epic
     # group (sprint is null), the board orders within a status column.
@@ -218,6 +229,73 @@ class Comment(models.Model):
 
     def __str__(self):
         return f'Comment on {self.issue.key} by {self.author}'
+
+
+class SprintCapacity(models.Model):
+    """One member's row in a sprint's capacity planner.
+
+    capacity = (base_points / working_days)
+               × (working_days − public_holidays − leave_days)
+               × role factor (team lead 0.8, tech lead 0.7)
+    """
+
+    ROLE_NONE = 'none'
+    ROLE_TEAM_LEAD = 'team_lead'
+    ROLE_TECH_LEAD = 'tech_lead'
+    ROLE_CHOICES = [
+        (ROLE_NONE, '—'),
+        (ROLE_TEAM_LEAD, 'Team lead'),
+        (ROLE_TECH_LEAD, 'Tech lead'),
+    ]
+    ROLE_FACTOR = {ROLE_NONE: 1.0, ROLE_TEAM_LEAD: 0.8, ROLE_TECH_LEAD: 0.7}
+
+    sprint = models.ForeignKey(Sprint, on_delete=models.CASCADE, related_name='capacities')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sprint_capacities',
+    )
+    base_points = models.PositiveSmallIntegerField(
+        default=10, help_text='Story points this person can take in a full sprint.',
+    )
+    leave_days = models.PositiveSmallIntegerField(default=0)
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default=ROLE_NONE)
+
+    class Meta:
+        unique_together = ['sprint', 'user']
+        verbose_name_plural = 'sprint capacities'
+
+    def __str__(self):
+        return f'{self.user.display_name} — {self.sprint.name}'
+
+
+class RetroItem(models.Model):
+    """A retrospective card for a completed sprint."""
+
+    CATEGORY_WENT_WELL = 'went_well'
+    CATEGORY_IMPROVE = 'improve'
+    CATEGORY_ACTION = 'action'
+    CATEGORY_CHOICES = [
+        (CATEGORY_WENT_WELL, 'What went well'),
+        (CATEGORY_IMPROVE, 'What could improve'),
+        (CATEGORY_ACTION, 'Action items'),
+    ]
+
+    sprint = models.ForeignKey(Sprint, on_delete=models.CASCADE, related_name='retro_items')
+    category = models.CharField(max_length=12, choices=CATEGORY_CHOICES)
+    text = models.CharField(max_length=500)
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name='retro_items',
+    )
+    # Action items can be promoted to a backlog issue.
+    linked_issue = models.ForeignKey(
+        Issue, null=True, blank=True, on_delete=models.SET_NULL, related_name='retro_items',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'[{self.get_category_display()}] {self.text[:40]}'
 
 
 class Activity(models.Model):

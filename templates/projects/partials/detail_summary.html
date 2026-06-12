@@ -7,6 +7,40 @@
         {% include 'components/icons.html' with name='pencil' class='h-4 w-4' %}
       </button>
     {% endif %}
+    {% if request.space_role == 'admin' %}
+      <div class="relative shrink-0" x-data="dropdown">
+        <button type="button" @click="toggle" @click.outside="close" class="btn-icon" title="More actions">
+          {% include 'components/icons.html' with name='dots' class='h-4 w-4' %}
+        </button>
+        <div x-cloak x-show="open" x-transition.origin.top.right class="menu absolute right-0 top-9">
+          {% if not issue.archived %}
+            <form method="post" action="{% url 'projects:issue_archive' issue.key %}">
+              {% csrf_token %}
+              <input type="hidden" name="state" value="archive">
+              <button type="submit" class="menu-item">
+                {% include 'components/icons.html' with name='history' class='h-4 w-4' %} Archive issue
+              </button>
+            </form>
+          {% else %}
+            <form method="post" action="{% url 'projects:issue_archive' issue.key %}">
+              {% csrf_token %}
+              <input type="hidden" name="state" value="restore">
+              <button type="submit" class="menu-item">
+                {% include 'components/icons.html' with name='history' class='h-4 w-4' %} Restore issue
+              </button>
+            </form>
+          {% endif %}
+          <div class="my-1 border-t border-n30"></div>
+          <form method="post" action="{% url 'projects:issue_delete' issue.key %}"
+                onsubmit="return confirm('Permanently delete {{ issue.key }}? Sub-tasks are deleted too. This cannot be undone.')">
+            {% csrf_token %}
+            <button type="submit" class="menu-item text-red-500">
+              {% include 'components/icons.html' with name='trash' class='h-4 w-4' %} Delete permanently
+            </button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
   </div>
   {% if can_edit %}
     <form x-cloak x-show="editing"

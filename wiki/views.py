@@ -88,11 +88,17 @@ def space_home(request, space):
 def page_view(request, space, slug):
     page = _get_page(request, space, slug)
     context = _wiki_context(request, space, page)
+    linked_issues = [
+        issue for issue in
+        page.linked_issues.filter(archived=False).select_related('status', 'space')
+        if issue.space.role_for(request.user) is not None
+    ]
     return render(request, 'wiki/page_view.html', {
         **context,
         'breadcrumbs': page.ancestors(),
         'html': render_page_html(page, can_edit=context['can_edit']),
         'comments': page.comments.select_related('author'),
+        'linked_issues': linked_issues,
     })
 
 

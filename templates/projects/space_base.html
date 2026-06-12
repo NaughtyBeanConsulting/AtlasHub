@@ -34,6 +34,12 @@
         {% include 'components/icons.html' with name='timeline' class='h-4 w-4' %} Timeline
       </a>
     {% endif %}
+    {% url 'projects:archive' space.key as archive_url %}
+    {% if archive_url %}
+      <a href="{{ archive_url }}" class="side-item {% if request.resolver_match.url_name == 'archive' %}side-item-active{% endif %}">
+        {% include 'components/icons.html' with name='history' class='h-4 w-4' %} Archive
+      </a>
+    {% endif %}
 
     <div class="mt-auto border-t border-n30 pt-3">
       {% if request.space_role == 'admin' %}

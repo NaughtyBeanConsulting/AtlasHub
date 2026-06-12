@@ -108,10 +108,25 @@
       </div>
     {% endif %}
   </div>
-  <p class="mb-6 text-xs text-n100">
+  <p class="mb-4 text-xs text-n100">
     Updated {{ page.updated_at|timesince }} ago
     {% if page.updated_by %}by {{ page.updated_by.display_name }}{% endif %}
   </p>
+
+  {% if linked_issues %}
+    <div class="mb-6 flex flex-wrap items-center gap-2">
+      <span class="text-xs font-semibold text-n300">Atlas issues:</span>
+      {% for issue in linked_issues %}
+        <a href="{% url 'projects:browse' issue.key %}"
+           class="flex items-center gap-1.5 rounded-[3px] border border-n40 px-2 py-0.5 transition-colors hover:bg-n10"
+           title="{{ issue.summary }}">
+          {% include 'components/icons.html' with name=issue.issue_type class='h-3.5 w-3.5' %}
+          <span class="text-xs font-medium text-n200">{{ issue.key }}</span>
+          <span class="lozenge {{ issue.status.lozenge_class }}">{{ issue.status.name }}</span>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
 
   <article class="prose-ah">{{ html|safe }}</article>
 

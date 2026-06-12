@@ -14,6 +14,14 @@
     <a href="{% url 'projects:backlog' space.key %}" class="btn-subtle">Plan sprints on the backlog</a>
   </div>
 
+  {% if velocity %}
+    <section class="card mb-6 p-5">
+      <h2 class="mb-1 text-sm font-semibold uppercase tracking-wide text-n300">Velocity</h2>
+      <p class="mb-3 text-xs text-n200">Story points completed per closed sprint.</p>
+      {% include 'projects/partials/chart_velocity.html' with chart=velocity %}
+    </section>
+  {% endif %}
+
   {% for g in groups %}
     <section class="card mb-4" x-data="{ open: {% if g.sprint.state == 'active' %}true{% else %}false{% endif %} }">
       <header class="flex cursor-pointer items-center gap-2.5 px-4 py-3" @click="open = !open">
@@ -51,7 +59,12 @@
             <span class="badge" title="Done / total story points">{{ g.points_done }}/{{ g.points_total }} pts</span>
           {% endif %}
         </div>
-        {% if g.sprint.state == 'active' %}
+        <a href="{% url 'projects:capacity' space.key g.sprint.id %}" class="btn-ghost !py-1 text-xs" @click.stop
+           title="Capacity planner">Capacity</a>
+        {% if g.sprint.state == 'completed' %}
+          <a href="{% url 'projects:retro' space.key g.sprint.id %}" class="btn-subtle !py-1 text-xs" @click.stop
+             title="Retrospective">Retro</a>
+        {% elif g.sprint.state == 'active' %}
           <a href="{% url 'projects:board' space.key %}" class="btn-primary !py-1 text-xs" @click.stop>Open board</a>
         {% endif %}
       </header>
@@ -85,6 +98,12 @@
             {{ g.carried_over }} issue{{ g.carried_over|pluralize }} left this sprint before or at completion
             (rolled over to the backlog or another sprint).
           </p>
+        {% endif %}
+        {% if g.burndown %}
+          <div class="border-t border-n30 px-4 py-3">
+            <h3 class="mb-2 text-[11px] font-bold uppercase tracking-wide text-n200">Burndown</h3>
+            {% include 'projects/partials/chart_burndown.html' with chart=g.burndown %}
+          </div>
         {% endif %}
       </div>
     </section>
