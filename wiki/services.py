@@ -89,11 +89,14 @@ def render_page_html(page, can_edit=False):
             return '<span class="drawio-missing">⚠ Diagram not found.</span>'
         edit_url = reverse('wiki:diagram_edit', args=[page.space.key, diagram.pk])
         if diagram.svg:
-            b64 = base64.b64encode(diagram.svg.encode()).decode()
-            body = (
-                f'<img src="data:image/svg+xml;base64,{b64}" '
-                f'alt="{escape(diagram.title)}" loading="lazy">'
-            )
+            # Newer saves store the export as a data URI (SVG, or PNG when
+            # draw.io's SVG exporter fails); older rows hold raw SVG text.
+            if diagram.svg.startswith('data:image'):
+                src = diagram.svg
+            else:
+                b64 = base64.b64encode(diagram.svg.encode()).decode()
+                src = f'data:image/svg+xml;base64,{b64}'
+            body = f'<img src="{src}" alt="{escape(diagram.title)}" loading="lazy">'
             action = 'Edit diagram'
         else:
             body = (

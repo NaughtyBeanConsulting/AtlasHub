@@ -40,6 +40,40 @@
     if (document.documentElement.classList.contains('dark')) params.set('dark', '1');
     frame.src = `https://embed.diagrams.net/?${params}`;
 
+    // The XML is stored the moment Save is pressed (the drawing can never be
+    // lost); the page preview follows once draw.io's exporter responds. Its
+    // SVG exporter sometimes throws ("Invalid value for <foreignObject>…"),
+    // so if no export arrives we retry as PNG, and give up gracefully after
+    // that — keeping the previous preview.
+    let exportTimer = null;
+    let triedPng = false;
+
+    function postSave(preview) {
+      const body = new URLSearchParams();
+      body.append('xml', latestXml);
+      if (preview) body.append('svg', preview);  // data URI (SVG or PNG)
+      body.append('title', document.getElementById('diagram-title').value);
+      return fetch(SAVE_URL, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken() },
+        body,
+      });
+    }
+
+    function requestExport(format) {
+      frame.contentWindow.postMessage(
+        JSON.stringify({ action: 'export', format, xml: latestXml }), '*');
+    }
+
+    function finishSave(note) {
+      if (exitAfterSave) {
+        window.location = BACK_URL;
+        return;
+      }
+      saveState.textContent = note;
+      setTimeout(() => { saveState.textContent = ''; }, 4000);
+    }
+
     window.addEventListener('message', async (evt) => {
       if (evt.origin !== 'https://embed.diagrams.net') return;
       let msg;
@@ -51,30 +85,26 @@
         latestXml = msg.xml;
         exitAfterSave = !!msg.exit;
         saveState.textContent = 'Saving…';
-        frame.contentWindow.postMessage(
-          JSON.stringify({ action: 'export', format: 'svg', xml: latestXml }), '*');
-      } else if (msg.event === 'export') {
-        const svg = await (await fetch(msg.data)).text();
-        const body = new URLSearchParams();
-        body.append('xml', latestXml);
-        body.append('svg', svg);
-        body.append('title', document.getElementById('diagram-title').value);
-        const resp = await fetch(SAVE_URL, {
-          method: 'POST',
-          headers: { 'X-CSRFToken': csrfToken() },
-          body,
-        });
+        const resp = await postSave(null);  // diagram XML is safe from here on
         if (!resp.ok) {
           saveState.textContent = '';
           alert('Saving the diagram failed — please try again.');
           return;
         }
-        if (exitAfterSave) {
-          window.location = BACK_URL;
-        } else {
-          saveState.textContent = 'Saved ✓';
-          setTimeout(() => { saveState.textContent = ''; }, 2500);
-        }
+        triedPng = false;
+        requestExport('svg');
+        clearTimeout(exportTimer);
+        exportTimer = setTimeout(() => {
+          triedPng = true;
+          requestExport('png');  // SVG exporter failed — raster fallback
+          exportTimer = setTimeout(() => {
+            finishSave('Saved ✓ (preview unchanged)');
+          }, 3500);
+        }, 3500);
+      } else if (msg.event === 'export') {
+        clearTimeout(exportTimer);
+        const resp = await postSave(msg.data);
+        finishSave(resp.ok ? 'Saved ✓' : 'Saved (preview failed)');
       } else if (msg.event === 'exit') {
         window.location = BACK_URL;
       }

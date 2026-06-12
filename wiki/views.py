@@ -346,10 +346,14 @@ def diagram_edit(request, space, diagram_id):
 @require_POST
 @space_required(role=SpaceMembership.ROLE_MEMBER, space_type=Space.TYPE_WIKI)
 def diagram_save(request, space, diagram_id):
+    """Saves arrive in up to two steps: XML immediately on Save (so the
+    drawing can never be lost), then the preview once draw.io's exporter
+    responds — so a blank `svg` must keep the existing preview."""
     diagram = get_object_or_404(Diagram, pk=diagram_id, page__space=space)
     _check_view(request, diagram.page)
     diagram.xml = request.POST.get('xml', '')
-    diagram.svg = request.POST.get('svg', '')
+    if request.POST.get('svg', '').strip():
+        diagram.svg = request.POST['svg']
     if request.POST.get('title', '').strip():
         diagram.title = request.POST['title'].strip()
     diagram.save()
