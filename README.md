@@ -11,7 +11,7 @@ notifications and password resets.
 | Backend | Django 6 (Python ≥3.12), PostgreSQL (psycopg 3) |
 | Frontend | Server-rendered templates + htmx + Alpine.js + Tailwind (standalone CLI — no Node in the CSS pipeline) |
 | Admin | django-unfold |
-| WhatsApp | Node ≥18 sidecar running whatsapp-web.js, controlled over HTTP |
+| WhatsApp | Shared Node sidecar (whatsapp-web.js) — one worker under ClockInSop, used over HTTP |
 
 ## Features
 
@@ -50,35 +50,42 @@ Open http://127.0.0.1:8000 — `seed_demo` prints demo logins
 (`demo@atlashub.local` / `atlashub-demo`); `--reset` recreates the demo data.
 While editing templates run `./build_tailwind.sh --watch`.
 
-## WhatsApp worker
+## WhatsApp (shared worker)
 
-```bash
-cd whatsapp-node-worker
-npm install
-node index.js                   # reads the repo-root .env
+AtlasHub does **not** run its own WhatsApp worker. It uses the single
+`whatsapp-node-worker` that runs under **ClockInSop** (pm2) on the same host,
+over a local token-authenticated HTTP API — one linked WhatsApp number shared by
+every app on the box.
+
+**What's independent vs shared:**
+
+- **Independent** — AtlasHub's message **log and queue live in its own database**
+  (`WhatsAppMessage`), flushed by its own scheduler. No other app can see
+  AtlasHub's messages and vice-versa: the worker is send-only and stateless, so
+  there's no cross-contamination of message history.
+- **Shared** — the **connection status** and device pairing. Every app's status
+  page reads the same `/status`, so they all reflect the one session. Pair the
+  device (QR) **once, from ClockInSop**, and don't use "disconnect / clear
+  session" from another app — it logs the shared number out for everyone.
+
+Point `.env` at the worker (token must match what it was started with):
+
+```
+WHATSAPP_WORKER_URL=http://127.0.0.1:8025
+WHATSAPP_WORKER_TOKEN=<same token the ClockInSop worker uses>
 ```
 
-Then visit **/whatsapp/link/** (staff user) and scan the QR with
-WhatsApp → Settings → Linked devices. Messages queue in the DB and a
-background scheduler flushes them every ~10 s; if the worker is down the
-queue simply waits and password resets fall back to email.
-
-- On macOS, if puppeteer's bundled Chromium fails to launch, point the worker
-  at desktop Chrome: `CHROME_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" node index.js`
-  (or set `CHROME_PATH` in `.env`).
-- `whatsapp_session/` holds WhatsApp auth tokens. It is gitignored — never
-  commit it.
-- The control API binds to `127.0.0.1` and is protected by
-  `WHATSAPP_WORKER_TOKEN` (set the same value for Django and the worker).
+The worker binds `127.0.0.1`, so AtlasHub must run on the same server. Messages
+queue in AtlasHub's DB and flush every ~10 s; if the worker is down the queue
+waits and password resets fall back to email.
 
 ## Environment variables
 
-All configuration lives in the repo-root `.env` (loaded with python-dotenv,
-shared by Django and the worker). See [.env.example](.env.example) for the
-full annotated list: `SECRET_KEY, DEBUG, ALLOWED_HOSTS, SITE_URL, DB_*`,
-optional `EMAIL_*` (reset fallback), `WHATSAPP_WORKER_URL/TOKEN, COUNTRY_CODE`
-(Django) and `WHATSAPP_WORKER_PORT/TOKEN, WHATSAPP_SESSION_PATH, CHROME_PATH`
-(worker).
+All configuration lives in the repo-root `.env` (loaded with python-dotenv).
+See [.env.example](.env.example) for the full annotated list: `SECRET_KEY,
+DEBUG, ALLOWED_HOSTS, SITE_URL, DB_*`, optional `EMAIL_*` (reset fallback), and
+`WHATSAPP_WORKER_URL/TOKEN, COUNTRY_CODE` — the WhatsApp vars just point at the
+shared ClockInSop worker.
 
 ## Production notes
 
@@ -92,11 +99,12 @@ optional `EMAIL_*` (reset fallback), `WHATSAPP_WORKER_URL/TOKEN, COUNTRY_CODE`
   should then report no issues. Tunables: `SECURE_SSL_REDIRECT`,
   `SECURE_HSTS_SECONDS`, `SECURE_HSTS_INCLUDE_SUBDOMAINS`, `SECURE_HSTS_PRELOAD`,
   `LOG_LEVEL`, `DB_CONN_MAX_AGE` (see `.env.example`).
-- Install [atlashub-whatsapp-worker.service](atlashub-whatsapp-worker.service)
-  (adjust paths) so systemd keeps the worker alive:
-  `systemctl enable --now atlashub-whatsapp-worker`.
+- WhatsApp is handled by the shared worker under ClockInSop (managed by pm2);
+  AtlasHub runs no worker of its own — just set `WHATSAPP_WORKER_URL` and a
+  matching `WHATSAPP_WORKER_TOKEN`, on the same host as the worker.
 - The queue scheduler runs inside the web process and is safe under multiple
-  gunicorn workers (`SELECT … FOR UPDATE SKIP LOCKED`).
+  gunicorn workers — rows are claimed with `select_for_update(skip_locked=True)`,
+  so each message is sent exactly once.
 - `SITE_URL` must be the public base URL — it is embedded in WhatsApp/email
   links.
 
@@ -108,6 +116,5 @@ accounts/   custom User, auth flows, notification preferences
 core/       Space + membership/roles, markdown pipeline, search, seed_demo
 projects/   Atlas: issues, sprints, board, backlog, timeline, activity
 wiki/       Hub: page tree, versions, draw.io diagrams, comments
-whatsapp/   queue model, worker HTTP client, scheduler, ops UI
-whatsapp-node-worker/   the only Node component (whatsapp-web.js sidecar)
+whatsapp/   queue model, scheduler, ops UI, HTTP client → shared ClockInSop worker
 ```

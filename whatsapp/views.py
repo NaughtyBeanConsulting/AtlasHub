@@ -1,5 +1,6 @@
 from functools import wraps
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
@@ -8,6 +9,13 @@ from django.views.decorators.http import require_POST
 
 from .client import service
 from .models import WhatsAppMessage
+
+
+def _manages_session():
+    """This app only manages the WhatsApp session (pair/restart/disconnect) when
+    it owns the worker. When it shares another app's worker this is False, making
+    the UI status-only."""
+    return getattr(settings, 'WHATSAPP_MANAGES_SESSION', True)
 
 
 def staff_required(view_func):
@@ -25,13 +33,17 @@ def dashboard(request):
     return render(request, 'whatsapp/dashboard.html', {
         'info': service.info,
         'recent_messages': WhatsAppMessage.objects.select_related('user')[:20],
+        'manages_session': _manages_session(),
     })
 
 
 @staff_required
 def status_panel(request):
     """HTMX polling partial — connection status + QR code."""
-    return render(request, 'whatsapp/partials/status_panel.html', {'info': service.info})
+    return render(request, 'whatsapp/partials/status_panel.html', {
+        'info': service.info,
+        'manages_session': _manages_session(),
+    })
 
 
 @staff_required
@@ -45,6 +57,9 @@ def message_queue_partial(request):
 @staff_required
 def link_device(request):
     """Dedicated full-screen page for QR code scanning and device linking."""
+    if not _manages_session():
+        messages.info(request, 'WhatsApp pairing is managed centrally (ClockInSop).')
+        return redirect('whatsapp:dashboard')
     return render(request, 'whatsapp/link_device.html', {'info': service.info})
 
 

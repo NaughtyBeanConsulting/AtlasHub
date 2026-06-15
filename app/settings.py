@@ -178,6 +178,11 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'AtlasHub <noreply@atl
 # Default dialling code for normalising local numbers to E.164 (27 = South Africa).
 PHONE_DEFAULT_DIAL_CODE = os.environ.get('COUNTRY_CODE', '27')
 
+# AtlasHub shares ClockInSop's WhatsApp worker, so it must NOT manage the session
+# (no QR pairing / restart / disconnect — those would affect every app sharing
+# the one number). Only the worker's owner sets this True.
+WHATSAPP_MANAGES_SESSION = env_bool('WHATSAPP_MANAGES_SESSION', 'False')
+
 # ── Admin (django-unfold) ────────────────────────────────────────────────────
 
 UNFOLD = {

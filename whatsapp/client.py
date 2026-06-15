@@ -7,6 +7,8 @@ import logging
 import os
 from urllib.request import Request, urlopen
 
+from django.conf import settings
+
 logger = logging.getLogger('whatsapp.client')
 
 _WORKER_URL = os.environ.get('WHATSAPP_WORKER_URL', 'http://127.0.0.1:8030').rstrip('/')
@@ -59,10 +61,16 @@ class WhatsAppClient:
         return self.info.get('status') == 'CONNECTED'
 
     def restart(self):
+        if not getattr(settings, 'WHATSAPP_MANAGES_SESSION', True):
+            logger.info('Ignoring restart — WhatsApp session is managed by the shared worker owner.')
+            return
         _post('/restart')
 
     def disconnect(self):
         """Log out, clear session, reinitialise with fresh QR."""
+        if not getattr(settings, 'WHATSAPP_MANAGES_SESSION', True):
+            logger.info('Ignoring disconnect — WhatsApp session is managed by the shared worker owner.')
+            return
         _post('/disconnect')
 
     def send(self, phone, message):

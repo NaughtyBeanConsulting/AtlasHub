@@ -17,6 +17,7 @@
       <div hx-get="{% url 'whatsapp:status_panel' %}" hx-trigger="load, every 5s" hx-swap="innerHTML">
         {% include 'whatsapp/partials/status_panel.html' %}
       </div>
+      {% if manages_session %}
       <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-n30 pt-4">
         <a href="{% url 'whatsapp:link_device' %}" class="btn-primary">Link a device</a>
         <form method="post" action="{% url 'whatsapp:restart_service' %}">
@@ -27,6 +28,11 @@
           {% csrf_token %}<button type="submit" class="btn-danger">Disconnect</button>
         </form>
       </div>
+      {% else %}
+      <p class="mt-4 border-t border-n30 pt-4 text-xs text-n200">
+        The WhatsApp connection is managed centrally (ClockInSop) — this view is read-only.
+      </p>
+      {% endif %}
     </section>
 
     <section class="card p-5">

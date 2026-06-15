@@ -5,8 +5,9 @@
   {% elif info.status == 'QR_READY' %}
     <span class="lozenge lozenge-inprogress">QR ready</span>
     <p class="text-sm text-n500">
-      A pairing QR code is waiting —
+      {% if manages_session %}A pairing QR code is waiting —
       <a href="{% url 'whatsapp:link_device' %}" class="text-blue-500 hover:underline">scan it now</a>.
+      {% else %}Waiting to be paired — managed centrally (ClockInSop).{% endif %}
     </p>
   {% elif info.status == 'STARTING' %}
     <span class="lozenge lozenge-inprogress">Starting…</span>
