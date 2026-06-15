@@ -24,9 +24,30 @@ ALLOWED_HOSTS = [h.strip() for h in os.environ.get('ALLOWED_HOSTS', '').split(',
 # Absolute base URL of this deployment — used to build links sent over
 # WhatsApp/email (password resets, notifications).
 SITE_URL = os.environ.get('SITE_URL', 'http://127.0.0.1:8000').rstrip('/')
-if SITE_URL.startswith('https://'):
+
+# ── Security hardening ───────────────────────────────────────────────────────
+# Everything here engages automatically once DEBUG is off; the HTTPS-only
+# pieces additionally require SITE_URL to be an https:// URL (TLS terminating
+# in front of Django). Behind a reverse proxy we trust X-Forwarded-Proto.
+_HTTPS = SITE_URL.startswith('https://')
+if _HTTPS:
     CSRF_TRUSTED_ORIGINS = [SITE_URL]
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+if not DEBUG:
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = 'same-origin'
+    X_FRAME_OPTIONS = 'DENY'
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_SAMESITE = 'Lax'
+    if _HTTPS:
+        SECURE_SSL_REDIRECT = env_bool('SECURE_SSL_REDIRECT', 'True')
+        SESSION_COOKIE_SECURE = True
+        CSRF_COOKIE_SECURE = True
+        SECURE_HSTS_SECONDS = int(os.environ.get('SECURE_HSTS_SECONDS', '31536000'))
+        SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', 'True')
+        SECURE_HSTS_PRELOAD = env_bool('SECURE_HSTS_PRELOAD', 'True')
 
 # ── Apps ─────────────────────────────────────────────────────────────────────
 
@@ -91,6 +112,9 @@ DATABASES = {
         'PASSWORD': os.environ.get('DB_PASSWORD'),
         'HOST': os.environ.get('DB_HOST', '127.0.0.1'),
         'PORT': os.environ.get('DB_PORT', '5432'),
+        # Reuse connections across requests (0 = close every request, dev default).
+        'CONN_MAX_AGE': int(os.environ.get('DB_CONN_MAX_AGE', '0' if DEBUG else '60')),
+        'CONN_HEALTH_CHECKS': True,
     }
 }
 
@@ -161,4 +185,27 @@ UNFOLD = {
     'SITE_HEADER': 'AtlasHub',
     'SITE_SUBHEADER': 'Back office',
     'SITE_URL': '/',
+}
+
+# ── Logging ──────────────────────────────────────────────────────────────────
+# Single console handler so gunicorn/systemd capture everything in the journal.
+LOG_LEVEL = os.environ.get('LOG_LEVEL', 'DEBUG' if DEBUG else 'INFO').upper()
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {
+            'format': '[{asctime}] {levelname} {name}: {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler', 'formatter': 'standard'},
+    },
+    'root': {'handlers': ['console'], 'level': LOG_LEVEL},
+    'loggers': {
+        'django': {'handlers': ['console'], 'level': LOG_LEVEL, 'propagate': False},
+        # Surface CSRF/host-header/SSL warnings even when the root level is higher.
+        'django.security': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
+    },
 }

@@ -82,8 +82,16 @@ optional `EMAIL_*` (reset fallback), `WHATSAPP_WORKER_URL/TOKEN, COUNTRY_CODE`
 
 ## Production notes
 
-- `DEBUG=False` serves static files through whitenoise
-  (`manage.py collectstatic` first); run Django under gunicorn.
+- Deploy order: `./build_tailwind.sh` (compiles `static/css/tailwind.css`) →
+  `manage.py collectstatic` → run under gunicorn.
+- With `DEBUG=False`, whitenoise serves static through
+  `CompressedManifestStaticFilesStorage` — hashed filenames + pre-compressed
+  `.gz` siblings, far-future cacheable. All JS/CSS is self-hosted (no CDN).
+- Set `SITE_URL=https://your-host` to auto-enable the HTTPS hardening
+  (SSL redirect, HSTS, secure session/CSRF cookies). `manage.py check --deploy`
+  should then report no issues. Tunables: `SECURE_SSL_REDIRECT`,
+  `SECURE_HSTS_SECONDS`, `SECURE_HSTS_INCLUDE_SUBDOMAINS`, `SECURE_HSTS_PRELOAD`,
+  `LOG_LEVEL`, `DB_CONN_MAX_AGE` (see `.env.example`).
 - Install [atlashub-whatsapp-worker.service](atlashub-whatsapp-worker.service)
   (adjust paths) so systemd keeps the worker alive:
   `systemctl enable --now atlashub-whatsapp-worker`.
