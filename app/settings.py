@@ -214,3 +214,20 @@ LOGGING = {
         'django.security': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
     },
 }
+
+# ── Error tracking (Sentry) ──────────────────────────────────────────────────
+# Disabled unless SENTRY_DSN is set, so dev/CI stay silent by default. The Django
+# integration is auto-enabled by sentry-sdk. send_default_pii attaches request
+# headers and the logged-in user to events — keep it on only where that's allowed.
+SENTRY_DSN = os.environ.get('SENTRY_DSN', '').strip()
+if SENTRY_DSN:
+    import sentry_sdk
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=os.environ.get('SENTRY_ENVIRONMENT', 'development' if DEBUG else 'production'),
+        release=os.environ.get('SENTRY_RELEASE') or None,
+        # Performance tracing: off by default; raise toward 1.0 to sample transactions.
+        traces_sample_rate=float(os.environ.get('SENTRY_TRACES_SAMPLE_RATE', '0.0')),
+        send_default_pii=env_bool('SENTRY_SEND_DEFAULT_PII', 'True'),
+    )
